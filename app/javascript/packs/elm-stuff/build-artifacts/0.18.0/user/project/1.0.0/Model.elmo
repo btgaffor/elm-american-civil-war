@@ -1,0 +1,390 @@
+var _user$project$Model$Model = F5(
+	function (a, b, c, d, e) {
+		return {mousex: a, mousey: b, regions: c, selectedRegion: d, currentState: e};
+	});
+var _user$project$Model$Region = F3(
+	function (a, b, c) {
+		return {position: a, army: b, connections: c};
+	});
+var _user$project$Model$Position = F2(
+	function (a, b) {
+		return {left: a, top: b};
+	});
+var _user$project$Model$Army = F6(
+	function (a, b, c, d, e, f) {
+		return {side: a, infantry: b, artillary: c, cavalry: d, eliteCavalry: e, leader: f};
+	});
+var _user$project$Model$PlacingUnit = F2(
+	function (a, b) {
+		return {ctor: 'PlacingUnit', _0: a, _1: b};
+	});
+var _user$project$Model$ChoosingUnitType = function (a) {
+	return {ctor: 'ChoosingUnitType', _0: a};
+};
+var _user$project$Model$ChoosingUnitSide = {ctor: 'ChoosingUnitSide'};
+var _user$project$Model$AddingUnit = function (a) {
+	return {ctor: 'AddingUnit', _0: a};
+};
+var _user$project$Model$MovingArmy = {ctor: 'MovingArmy'};
+var _user$project$Model$Idle = {ctor: 'Idle'};
+var _user$project$Model$Confederate = {ctor: 'Confederate'};
+var _user$project$Model$Union = {ctor: 'Union'};
+var _user$project$Model$model = {
+	mousex: 0,
+	mousey: 0,
+	selectedRegion: _elm_lang$core$Maybe$Nothing,
+	regions: _elm_lang$core$Array$fromList(
+		{
+			ctor: '::',
+			_0: {
+				position: {left: 138, top: 111},
+				army: _elm_lang$core$Maybe$Just(
+					{side: _user$project$Model$Union, infantry: 1, artillary: 0, cavalry: 0, eliteCavalry: 0, leader: 0}),
+				connections: {
+					ctor: '::',
+					_0: 1,
+					_1: {
+						ctor: '::',
+						_0: 2,
+						_1: {ctor: '[]'}
+					}
+				}
+			},
+			_1: {
+				ctor: '::',
+				_0: {
+					position: {left: 147, top: 211},
+					army: _elm_lang$core$Maybe$Just(
+						{side: _user$project$Model$Union, infantry: 1, artillary: 1, cavalry: 1, eliteCavalry: 1, leader: 1}),
+					connections: {
+						ctor: '::',
+						_0: 0,
+						_1: {
+							ctor: '::',
+							_0: 3,
+							_1: {ctor: '[]'}
+						}
+					}
+				},
+				_1: {
+					ctor: '::',
+					_0: {
+						position: {left: 329, top: 158},
+						army: _elm_lang$core$Maybe$Just(
+							{side: _user$project$Model$Union, infantry: 1, artillary: 0, cavalry: 0, eliteCavalry: 0, leader: 0}),
+						connections: {
+							ctor: '::',
+							_0: 0,
+							_1: {
+								ctor: '::',
+								_0: 3,
+								_1: {
+									ctor: '::',
+									_0: 4,
+									_1: {
+										ctor: '::',
+										_0: 5,
+										_1: {
+											ctor: '::',
+											_0: 11,
+											_1: {ctor: '[]'}
+										}
+									}
+								}
+							}
+						}
+					},
+					_1: {
+						ctor: '::',
+						_0: {
+							position: {left: 200, top: 265},
+							army: _elm_lang$core$Maybe$Just(
+								{side: _user$project$Model$Union, infantry: 1, artillary: 0, cavalry: 0, eliteCavalry: 0, leader: 0}),
+							connections: {
+								ctor: '::',
+								_0: 1,
+								_1: {
+									ctor: '::',
+									_0: 2,
+									_1: {
+										ctor: '::',
+										_0: 4,
+										_1: {
+											ctor: '::',
+											_0: 8,
+											_1: {ctor: '[]'}
+										}
+									}
+								}
+							}
+						},
+						_1: {
+							ctor: '::',
+							_0: {
+								position: {left: 334, top: 271},
+								army: _elm_lang$core$Maybe$Just(
+									{side: _user$project$Model$Union, infantry: 1, artillary: 0, cavalry: 0, eliteCavalry: 0, leader: 0}),
+								connections: {
+									ctor: '::',
+									_0: 2,
+									_1: {
+										ctor: '::',
+										_0: 3,
+										_1: {
+											ctor: '::',
+											_0: 10,
+											_1: {
+												ctor: '::',
+												_0: 13,
+												_1: {ctor: '[]'}
+											}
+										}
+									}
+								}
+							},
+							_1: {
+								ctor: '::',
+								_0: {
+									position: {left: 424, top: 71},
+									army: _elm_lang$core$Maybe$Nothing,
+									connections: {
+										ctor: '::',
+										_0: 2,
+										_1: {
+											ctor: '::',
+											_0: 6,
+											_1: {
+												ctor: '::',
+												_0: 7,
+												_1: {
+													ctor: '::',
+													_0: 11,
+													_1: {ctor: '[]'}
+												}
+											}
+										}
+									}
+								},
+								_1: {
+									ctor: '::',
+									_0: {
+										position: {left: 475, top: 101},
+										army: _elm_lang$core$Maybe$Nothing,
+										connections: {
+											ctor: '::',
+											_0: 5,
+											_1: {ctor: '[]'}
+										}
+									},
+									_1: {
+										ctor: '::',
+										_0: {
+											position: {left: 632, top: 100},
+											army: _elm_lang$core$Maybe$Nothing,
+											connections: {
+												ctor: '::',
+												_0: 5,
+												_1: {
+													ctor: '::',
+													_0: 12,
+													_1: {ctor: '[]'}
+												}
+											}
+										},
+										_1: {
+											ctor: '::',
+											_0: {
+												position: {left: 102, top: 349},
+												army: _elm_lang$core$Maybe$Nothing,
+												connections: {
+													ctor: '::',
+													_0: 3,
+													_1: {
+														ctor: '::',
+														_0: 9,
+														_1: {
+															ctor: '::',
+															_0: 10,
+															_1: {ctor: '[]'}
+														}
+													}
+												}
+											},
+											_1: {
+												ctor: '::',
+												_0: {
+													position: {left: 175, top: 377},
+													army: _elm_lang$core$Maybe$Nothing,
+													connections: {
+														ctor: '::',
+														_0: 8,
+														_1: {ctor: '[]'}
+													}
+												},
+												_1: {
+													ctor: '::',
+													_0: {
+														position: {left: 346, top: 373},
+														army: _elm_lang$core$Maybe$Nothing,
+														connections: {
+															ctor: '::',
+															_0: 4,
+															_1: {
+																ctor: '::',
+																_0: 8,
+																_1: {
+																	ctor: '::',
+																	_0: 13,
+																	_1: {ctor: '[]'}
+																}
+															}
+														}
+													},
+													_1: {
+														ctor: '::',
+														_0: {
+															position: {left: 451, top: 203},
+															army: _elm_lang$core$Maybe$Just(
+																{side: _user$project$Model$Confederate, infantry: 1, artillary: 0, cavalry: 0, eliteCavalry: 0, leader: 0}),
+															connections: {
+																ctor: '::',
+																_0: 2,
+																_1: {
+																	ctor: '::',
+																	_0: 5,
+																	_1: {
+																		ctor: '::',
+																		_0: 12,
+																		_1: {
+																			ctor: '::',
+																			_0: 13,
+																			_1: {ctor: '[]'}
+																		}
+																	}
+																}
+															}
+														},
+														_1: {
+															ctor: '::',
+															_0: {
+																position: {left: 578, top: 242},
+																army: _elm_lang$core$Maybe$Just(
+																	{side: _user$project$Model$Confederate, infantry: 1, artillary: 0, cavalry: 0, eliteCavalry: 0, leader: 0}),
+																connections: {
+																	ctor: '::',
+																	_0: 7,
+																	_1: {
+																		ctor: '::',
+																		_0: 11,
+																		_1: {
+																			ctor: '::',
+																			_0: 13,
+																			_1: {
+																				ctor: '::',
+																				_0: 14,
+																				_1: {
+																					ctor: '::',
+																					_0: 15,
+																					_1: {ctor: '[]'}
+																				}
+																			}
+																		}
+																	}
+																}
+															},
+															_1: {
+																ctor: '::',
+																_0: {
+																	position: {left: 456, top: 353},
+																	army: _elm_lang$core$Maybe$Just(
+																		{side: _user$project$Model$Confederate, infantry: 1, artillary: 0, cavalry: 0, eliteCavalry: 0, leader: 0}),
+																	connections: {
+																		ctor: '::',
+																		_0: 4,
+																		_1: {
+																			ctor: '::',
+																			_0: 10,
+																			_1: {
+																				ctor: '::',
+																				_0: 11,
+																				_1: {
+																					ctor: '::',
+																					_0: 12,
+																					_1: {
+																						ctor: '::',
+																						_0: 14,
+																						_1: {
+																							ctor: '::',
+																							_0: 15,
+																							_1: {ctor: '[]'}
+																						}
+																					}
+																				}
+																			}
+																		}
+																	}
+																},
+																_1: {
+																	ctor: '::',
+																	_0: {
+																		position: {left: 532, top: 337},
+																		army: _elm_lang$core$Maybe$Just(
+																			{side: _user$project$Model$Confederate, infantry: 1, artillary: 1, cavalry: 1, eliteCavalry: 1, leader: 1}),
+																		connections: {
+																			ctor: '::',
+																			_0: 12,
+																			_1: {
+																				ctor: '::',
+																				_0: 13,
+																				_1: {
+																					ctor: '::',
+																					_0: 15,
+																					_1: {ctor: '[]'}
+																				}
+																			}
+																		}
+																	},
+																	_1: {
+																		ctor: '::',
+																		_0: {
+																			position: {left: 609, top: 392},
+																			army: _elm_lang$core$Maybe$Just(
+																				{side: _user$project$Model$Confederate, infantry: 1, artillary: 0, cavalry: 0, eliteCavalry: 0, leader: 0}),
+																			connections: {
+																				ctor: '::',
+																				_0: 12,
+																				_1: {
+																					ctor: '::',
+																					_0: 13,
+																					_1: {
+																						ctor: '::',
+																						_0: 14,
+																						_1: {ctor: '[]'}
+																					}
+																				}
+																			}
+																		},
+																		_1: {ctor: '[]'}
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}),
+	currentState: _user$project$Model$Idle
+};
+var _user$project$Model$Leader = {ctor: 'Leader'};
+var _user$project$Model$Artillary = {ctor: 'Artillary'};
+var _user$project$Model$EliteCavalry = {ctor: 'EliteCavalry'};
+var _user$project$Model$Cavalry = {ctor: 'Cavalry'};
+var _user$project$Model$Infantry = {ctor: 'Infantry'};

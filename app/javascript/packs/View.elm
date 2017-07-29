@@ -1,6 +1,6 @@
 module View exposing (..)
 
-import Html exposing (Html, h1, div, text, img, button)
+import Html exposing (Html, h1, h3, h5, div, text, img, button)
 import Html.Attributes exposing (style, src)
 import Html.Events exposing (onClick)
 import Array
@@ -8,6 +8,7 @@ import Maybe exposing (..)
 
 import Model exposing (..)
 import Update exposing (..)
+import Utils exposing (..)
 
 view : Model -> Html Action
 view model =
@@ -15,10 +16,64 @@ view model =
   -- avoid loading additional resources. Use a proper stylesheet when building your own app.
   div []
     [
+      errorModal model,
       img [ src "map_v2.png" ] [],
       div [] (Array.toList (Array.indexedMap (renderRegion model.selectedRegion) model.regions)),
       sidebar model
     ]
+
+errorModal : Model -> Html Action
+errorModal model =
+  case model.error of
+    Nothing -> div [] []
+    Just error ->
+      div []
+        [
+         div
+           [
+             style
+               [
+                 ("position", "absolute"),
+                 ("left", "0px"),
+                 ("top", "0px"),
+                 ("width", (model.windowSize.width |> toString) ++ "px"),
+                 ("height", (model.windowSize.height |> toString) ++ "px"),
+                 ("background-color", "gray"),
+                 ("opacity", "0.8"),
+                 ("z-index", "1000") -- make sure it's above everything
+               ]
+           ] [],
+         div
+           [
+             style
+               (
+                 let
+                   modalWidth = 300
+                   modalHeight = 70
+                 in
+                   [
+                     ("position", "absolute"),
+                     ("left", ((model.windowSize.width // 2) - (modalWidth // 2) |> toString) ++ "px"),
+                     ("top", ((model.windowSize.height // 2) - (modalHeight // 2) |> toString) ++ "px"),
+                     ("width", (modalWidth |> toString) ++ "px"),
+                     ("height", (modalHeight |> toString) ++ "px"),
+                     ("background-color", "white"),
+                     ("z-index", "1001"), -- make sure it's above everything
+                     ("border-radius", "10px"),
+                     ("border", "black solid 2px"),
+                     ("padding", "10px"),
+                     ("text-align", "center"),
+                     ("display", "flex"),
+                     ("flex-direction", "column"),
+                     ("justify-content", "space-between")
+                   ]
+               )
+           ]
+           [
+             div [] [ text error ],
+             button [ onClick ClearError ] [ text "Close" ]
+           ]
+        ]
 
 renderRegion : Maybe Int -> Int -> Region -> Html Action
 renderRegion selectedRegion index region =
@@ -27,7 +82,7 @@ renderRegion selectedRegion index region =
       case selectedRegion of
         Nothing -> "inherit"
         Just selectedRegion ->
-          if (List.any (\i -> i == selectedRegion) region.connections) then
+          if (listContains region.connections selectedRegion) then
             "yellow"
           else
             "inherit"
@@ -97,17 +152,32 @@ sidebar model =
         ]
     ]
     [
+      (stateHeader model),
       (sidebarButtons model),
       (armyInfo model)
     ]
+
+stateHeader : Model -> Html Action
+stateHeader model =
+  case model.currentState of
+    Idle -> h1 [] [ text "Idle" ]
+    MovingArmy -> h1 [] [ text "Moving an Army" ]
+    AddingUnit addingUnitState ->
+      div []
+        [
+          h1 [] [ text "Adding a Unit" ],
+          case addingUnitState of
+            ChoosingUnitSide -> h3 [] [ text "Choose a Side" ]
+            ChoosingUnitType side -> h3 [] [ text "Choose a Unit Type" ]
+            PlacingUnit side unitType -> h3 [] [ text "Place Your Unit" ]
+        ]
 
 sidebarButtons : Model -> Html Action
 sidebarButtons model =
   case model.currentState of
     Idle ->
       button [ onClick (AddUnit Start) ] [ text "Add Unit" ]
-    MovingArmy ->
-      text "Moving Army"
+    MovingArmy -> div [] []
     AddingUnit addingUnitState ->
       case addingUnitState of
         ChoosingUnitSide ->
@@ -145,7 +215,7 @@ armyInfo model =
       Just army ->
         div []
           [
-            div [] [ text "Army Details" ],
+            h5 [] [ text "Army Details" ],
             div [] [ text ((army.infantry |> toString) ++ " Infantry") ],
             div [] [ text ((army.artillary |> toString) ++ " Artillary") ],
             div [] [ text ((army.cavalry |> toString) ++ " Cavalry") ],

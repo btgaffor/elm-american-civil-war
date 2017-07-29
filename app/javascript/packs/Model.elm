@@ -1,6 +1,7 @@
 module Model exposing (..)
 
 import Array
+import Window exposing (Size)
 
 -- type CurrentState = Idle
 --                   | MovingArmy
@@ -21,8 +22,10 @@ type UnitType = Infantry | Cavalry | EliteCavalry | Artillary | Leader
 
 type alias Model =
   {
+    error: Maybe String,
     mousex: Int,
     mousey: Int,
+    windowSize: Size,
     regions: Array.Array Region,
     selectedRegion: Maybe Int,
     currentState: CurrentState
@@ -56,8 +59,10 @@ type alias Army =
 model : Model
 model =
   {
+    error = Nothing,
     mousex = 0,
     mousey = 0,
+    windowSize = { width = 0, height = 0 },
     selectedRegion = Nothing,
     regions = Array.fromList
       [

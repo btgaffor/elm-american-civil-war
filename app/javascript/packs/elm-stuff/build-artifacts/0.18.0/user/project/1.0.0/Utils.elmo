@@ -1,0 +1,9 @@
+var _user$project$Utils$listContains = F2(
+	function (list, value) {
+		return A2(
+			_elm_lang$core$List$any,
+			function (i) {
+				return _elm_lang$core$Native_Utils.eq(i, value);
+			},
+			list);
+	});
