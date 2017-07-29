@@ -5,6 +5,7 @@ import Maybe exposing (andThen)
 import Window exposing (Size)
 import Task
 import Model exposing (..)
+import Utils exposing (..)
 
 type Action
   = MouseMove Int Int
@@ -40,7 +41,7 @@ update action model =
                 case (Array.get selectedRegionIndex model.regions) of
                   Nothing -> setError model "Selected region does not exist, resetting state."
                   Just selectedRegion ->
-                    if (List.any (\i -> i == clickedIndex) selectedRegion.connections) then
+                    if (listContains selectedRegion.connections clickedIndex) then
                       ({
                         model |
                           selectedRegion = Just clickedIndex,
