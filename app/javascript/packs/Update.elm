@@ -49,7 +49,7 @@ update action model =
                             (moveArmy model.regions selectedRegion.army selectedRegionIndex clickedIndex)
                       }, Cmd.none)
                     else
-                      (model, Cmd.none)
+                      ({ model | error = Just "Please select one of the yellow regions." }, Cmd.none)
     AddUnit addUnitAction -> addUnit model addUnitAction
 
 setError : Model -> String -> (Model, Cmd Action)
