@@ -7,100 +7,174 @@ import Task
 import Model exposing (..)
 import Utils exposing (..)
 
-type Action
-  = MouseMove Int Int
-  | WindowResize Size
-  | ClearError
-  | ClickRegion Int
-  | AddUnit AddUnitAction
 
-type AddUnitAction = Start
-             | ChooseUnitSide Side
-             | ChooseUnitType Side UnitType
-             | Finish
+type Action
+    = MouseMove Int Int
+    | WindowResize Size
+    | ClearError
+    | ClickRegion Int
+    | AddUnit AddUnitAction
+
+
+type AddUnitAction
+    = Start
+    | ChooseUnitSide Side
+    | ChooseUnitType Side UnitType
+    | Finish
+
+
 
 -- UPDATE
 
-update : Action -> Model -> (Model, Cmd Action)
+
+update : Action -> Model -> ( Model, Cmd Action )
 update action model =
-  case action of
-    MouseMove left top -> ({ model | mousex = left, mousey = top }, Cmd.none)
-    WindowResize size -> ({ model | windowSize = size }, Cmd.none)
-    ClearError -> ({ model | error = Nothing }, Cmd.none)
-    ClickRegion clickedIndex ->
-      case model.currentState of
-        AddingUnit addingUnitState -> (model, Cmd.none)
-        Idle -> selectRegion model clickedIndex
-        MovingArmy ->
-          case model.selectedRegion of
-            Nothing -> setError model "No region selected, resetting state."
-            Just selectedRegionIndex ->
-              if selectedRegionIndex == clickedIndex then
-                deselectRegion model
-              else
-                case (Array.get selectedRegionIndex model.regions) of
-                  Nothing -> setError model "Selected region does not exist, resetting state."
-                  Just selectedRegion ->
-                    if (listContains selectedRegion.connections clickedIndex) then
-                      ({
-                        model |
-                          selectedRegion = Just clickedIndex,
-                          regions =
-                            (moveArmy model.regions selectedRegion.army selectedRegionIndex clickedIndex)
-                      }, Cmd.none)
-                    else
-                      ({ model | error = Just "Please select one of the yellow regions." }, Cmd.none)
-    AddUnit addUnitAction -> addUnit model addUnitAction
+    case action of
+        MouseMove left top ->
+            ( { model | mousex = left, mousey = top }, Cmd.none )
 
-setError : Model -> String -> (Model, Cmd Action)
-setError model message =
-  ({
-    model |
-      error = Just message,
-      selectedRegion = Nothing,
-      currentState = Idle
-  }, Cmd.none)
+        WindowResize size ->
+            ( { model | windowSize = size }, Cmd.none )
 
-selectRegion : Model -> Int -> (Model, Cmd Action)
+        ClearError ->
+            ( { model | error = Nothing }, Cmd.none )
+
+        ClickRegion clickedIndex ->
+            case model.currentState of
+                AddingUnit addingUnitState ->
+                    ( model, Cmd.none )
+
+                Idle ->
+                    selectRegion model clickedIndex
+
+                MovingArmy ->
+                    case model.selectedRegion of
+                        Nothing ->
+                            setError model "No region selected, resetting state."
+
+                        Just selectedRegionIndex ->
+                            if selectedRegionIndex == clickedIndex then
+                                deselectRegion model
+                            else
+                                case (Array.get selectedRegionIndex model.regions) of
+                                    Nothing ->
+                                        setError model "Selected region does not exist, resetting state."
+
+                                    Just selectedRegion ->
+                                        if (listContains selectedRegion.connections clickedIndex) then
+                                            moveArmy model selectedRegionIndex clickedIndex
+                                        else
+                                            ( { model | error = Just "Please select one of the yellow regions." }, Cmd.none )
+
+        AddUnit addUnitAction ->
+            addUnit model addUnitAction
+
+
+selectRegion : Model -> Int -> ( Model, Cmd Action )
 selectRegion model clickedIndex =
-  let
-    army = Array.get clickedIndex model.regions |> andThen .army
-  in
-    case army of
-      Nothing -> (model, Cmd.none)
-      Just army ->
-        ({ model | selectedRegion = Just clickedIndex, currentState = MovingArmy }, Cmd.none)
+    let
+        army =
+            Array.get clickedIndex model.regions |> andThen .army
+    in
+        case army of
+            Nothing ->
+                ( model, Cmd.none )
 
-deselectRegion : Model -> (Model, Cmd Action)
+            Just army ->
+                ( { model | selectedRegion = Just clickedIndex, currentState = MovingArmy }, Cmd.none )
+
+
+deselectRegion : Model -> ( Model, Cmd Action )
 deselectRegion model =
-  ({ model | selectedRegion = Nothing, currentState = Idle }, Cmd.none)
+    ( { model | selectedRegion = Nothing, currentState = Idle }, Cmd.none )
 
-addUnit : Model -> AddUnitAction -> (Model, Cmd Action)
+
+addUnit : Model -> AddUnitAction -> ( Model, Cmd Action )
 addUnit model addUnitAction =
-  case addUnitAction of
-    Start ->
-      ({ model | currentState = AddingUnit ChoosingUnitSide }, Cmd.none)
-    ChooseUnitSide side ->
-      ({ model | currentState = AddingUnit (ChoosingUnitType side) }, Cmd.none)
-    ChooseUnitType side unitType ->
-      ({ model | currentState = AddingUnit (PlacingUnit side unitType) }, Cmd.none)
-    Finish ->
-      ({ model | currentState = Idle }, Cmd.none)
+    case addUnitAction of
+        Start ->
+            ( { model | currentState = AddingUnit ChoosingUnitSide }, Cmd.none )
 
-moveArmy : Array.Array (Region) -> Maybe Army -> Int -> Int -> Array.Array (Region)
-moveArmy regions army oldIndex newIndex =
-  Array.indexedMap
-    (\mapIndex mapRegion ->
-      if mapIndex == oldIndex then
-        { mapRegion | army = Nothing }
-      else if mapIndex == newIndex then
-        { mapRegion | army = army }
-      else
-        mapRegion
+        ChooseUnitSide side ->
+            ( { model | currentState = AddingUnit (ChoosingUnitType side) }, Cmd.none )
+
+        ChooseUnitType side unitType ->
+            ( { model | currentState = AddingUnit (PlacingUnit side unitType) }, Cmd.none )
+
+        Finish ->
+            ( { model | currentState = Idle }, Cmd.none )
+
+
+moveArmy : Model -> Int -> Int -> ( Model, Cmd Action )
+moveArmy model oldIndex newIndex =
+    case
+        Result.map2
+            (\newRegion oldRegion ->
+                Maybe.withDefault
+                    -- if there is no army in the new spot, just move the army
+                    { model
+                        | selectedRegion = Just newIndex
+                        , regions =
+                            model.regions
+                                |> Array.set oldIndex { oldRegion | army = Nothing }
+                                |> Array.set newIndex { newRegion | army = oldRegion.army }
+                    }
+                    (Maybe.map2
+                        (\newArmy oldArmy ->
+                            -- if the armies are the same, join them in the new region
+                            if newArmy.side == oldArmy.side then
+                                { model
+                                    | selectedRegion = Just newIndex
+                                    , regions =
+                                        model.regions
+                                            |> Array.set oldIndex { oldRegion | army = Nothing }
+                                            |> Array.set newIndex { newRegion | army = (joinArmies oldArmy newArmy) }
+                                }
+                            else
+                                -- TODO
+                                { model | error = Just "Battles not implemented yet." }
+                        )
+                        newRegion.army
+                        oldRegion.army
+                    )
+            )
+            (Array.get newIndex model.regions
+                |> Result.fromMaybe "Destination region does not exist. Resetting state."
+            )
+            (Array.get oldIndex model.regions
+                |> Result.fromMaybe "Source region does not exist. Resetting state."
+            )
+    of
+        Ok newModel ->
+            ( newModel, Cmd.none )
+
+        Err error ->
+            setError model error
+
+
+joinArmies : Army -> Army -> Maybe Army
+joinArmies oldArmy newArmy =
+    Just
+        { newArmy
+            | infantry = newArmy.infantry + oldArmy.infantry
+            , artillary = newArmy.artillary + oldArmy.artillary
+            , cavalry = newArmy.cavalry + oldArmy.cavalry
+            , eliteCavalry = newArmy.eliteCavalry + oldArmy.eliteCavalry
+            , leader = newArmy.leader + oldArmy.leader
+        }
+
+
+setError : Model -> String -> ( Model, Cmd Action )
+setError model message =
+    ( { model
+        | error = Just message
+        , selectedRegion = Nothing
+        , currentState = Idle
+      }
+    , Cmd.none
     )
-    regions
 
 
-init : (Model, Cmd Action)
+init : ( Model, Cmd Action )
 init =
-  (model, Task.perform WindowResize Window.size)
+    ( model, Task.perform WindowResize Window.size )
