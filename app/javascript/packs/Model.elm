@@ -43,6 +43,7 @@ type alias Model =
     , windowSize : Size
     , regions : Array.Array Region
     , selectedRegion : Maybe Int
+    , turn : Side
     , currentState : CurrentState
     }
 
@@ -244,5 +245,6 @@ model =
               , connections = [ 12, 13, 14 ]
               }
             ]
+    , turn = Confederate
     , currentState = Idle
     }

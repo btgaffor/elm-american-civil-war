@@ -14,6 +14,7 @@ type Action
     | ClearError
     | ClickRegion Int
     | AddUnit AddUnitAction
+    | EndTurn
 
 
 type AddUnitAction
@@ -69,19 +70,26 @@ update action model =
         AddUnit addUnitAction ->
             addUnit model addUnitAction
 
+        EndTurn ->
+            case model.turn of
+                Union ->
+                    { model | turn = Confederate } ! []
+
+                Confederate ->
+                    { model | turn = Union } ! []
+
 
 selectRegion : Model -> Int -> ( Model, Cmd Action )
 selectRegion model clickedIndex =
-    let
-        army =
-            Array.get clickedIndex model.regions |> andThen .army
-    in
-        case army of
-            Nothing ->
-                ( model, Cmd.none )
+    case Array.get clickedIndex model.regions |> andThen .army of
+        Nothing ->
+            model ! []
 
-            Just army ->
-                ( { model | selectedRegion = Just clickedIndex, currentState = MovingArmy }, Cmd.none )
+        Just army ->
+            if army.side == model.turn then
+                { model | selectedRegion = Just clickedIndex, currentState = MovingArmy } ! []
+            else
+                model ! []
 
 
 deselectRegion : Model -> ( Model, Cmd Action )
@@ -111,7 +119,9 @@ moveArmy model oldIndex newIndex =
         Result.map2
             (\newRegion oldRegion ->
                 Maybe.withDefault
-                    -- if there is no army in the new spot, just move the army
+                    -- move the army from the old region to the new one.
+                    -- it doesn't matter if the old region had no army, since it'll
+                    -- just be nothing in the new region anyway
                     { model
                         | selectedRegion = Just newIndex
                         , regions =

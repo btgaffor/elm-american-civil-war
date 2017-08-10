@@ -13,3 +13,60 @@
  *= require_tree .
  *= require_self
  */
+
+.red {
+  background-color: red;
+}
+
+.modal-backdrop {
+  position: absolute;
+  left: 0;
+  top: 0;
+  background-color: gray;
+  opacity: 0.8;
+  z-index: 1000;
+}
+
+.modal-window {
+  position: absolute;
+  background-color: white;
+  z-index: 1001;
+  border-radius: 10px;
+  border: black solid 2px;
+  padding: 10px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.region {
+  position: absolute;
+  width: 40px;
+  height: 40px;
+  border-radius: 20px;
+}
+
+.flag {
+  position: relative;
+  left: -5px;
+  top: 3px;
+}
+
+.flag.highlighted {
+  left: -7px;
+  top: 2px;
+  border: 2px solid green;
+}
+
+.army-info {
+  position: relative;
+  left: -5px;
+  min-width: 50px;
+}
+
+#sidebar {
+  position: absolute;
+  top: 10px;
+  left: 900px;
+}
