@@ -32,18 +32,18 @@ update : Action -> Model -> ( Model, Cmd Action )
 update action model =
     case action of
         MouseMove left top ->
-            ( { model | mousex = left, mousey = top }, Cmd.none )
+            { model | mousex = left, mousey = top } ! []
 
         WindowResize size ->
-            ( { model | windowSize = size }, Cmd.none )
+            { model | windowSize = size } ! []
 
         ClearError ->
-            ( { model | error = Nothing }, Cmd.none )
+            { model | error = Nothing } ! []
 
         ClickRegion clickedIndex ->
             case model.currentState of
                 AddingUnit addingUnitState ->
-                    ( model, Cmd.none )
+                    model ! []
 
                 Idle ->
                     selectRegion model clickedIndex
@@ -65,7 +65,7 @@ update action model =
                                         if (listContains selectedRegion.connections clickedIndex) then
                                             moveArmy model selectedRegionIndex clickedIndex
                                         else
-                                            ( { model | error = Just "Please select one of the yellow regions." }, Cmd.none )
+                                            { model | error = Just "Please select one of the yellow regions." } ! []
 
         AddUnit addUnitAction ->
             addUnit model addUnitAction
@@ -111,23 +111,23 @@ selectRegion model clickedIndex =
 
 deselectRegion : Model -> ( Model, Cmd Action )
 deselectRegion model =
-    ( { model | selectedRegion = Nothing, currentState = Idle }, Cmd.none )
+    { model | selectedRegion = Nothing, currentState = Idle } ! []
 
 
 addUnit : Model -> AddUnitAction -> ( Model, Cmd Action )
 addUnit model addUnitAction =
     case addUnitAction of
         Start ->
-            ( { model | currentState = AddingUnit ChoosingUnitSide }, Cmd.none )
+            { model | currentState = AddingUnit ChoosingUnitSide } ! []
 
         ChooseUnitSide side ->
-            ( { model | currentState = AddingUnit (ChoosingUnitType side) }, Cmd.none )
+            { model | currentState = AddingUnit (ChoosingUnitType side) } ! []
 
         ChooseUnitType side unitType ->
-            ( { model | currentState = AddingUnit (PlacingUnit side unitType) }, Cmd.none )
+            { model | currentState = AddingUnit (PlacingUnit side unitType) } ! []
 
         Finish ->
-            ( { model | currentState = Idle }, Cmd.none )
+            { model | currentState = Idle } ! []
 
 
 moveArmy : Model -> Int -> Int -> ( Model, Cmd Action )
@@ -181,7 +181,7 @@ moveArmy model oldIndex newIndex =
             )
     of
         Ok newModel ->
-            ( newModel, Cmd.none )
+            newModel ! []
 
         Err error ->
             setError model error ! []
