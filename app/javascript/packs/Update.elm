@@ -164,14 +164,7 @@ moveArmy model oldIndex newIndex =
 
 joinArmies : Army -> Army -> Maybe Army
 joinArmies oldArmy newArmy =
-    Just
-        { newArmy
-            | infantry = newArmy.infantry + oldArmy.infantry
-            , artillary = newArmy.artillary + oldArmy.artillary
-            , cavalry = newArmy.cavalry + oldArmy.cavalry
-            , eliteCavalry = newArmy.eliteCavalry + oldArmy.eliteCavalry
-            , leader = newArmy.leader + oldArmy.leader
-        }
+    Just { oldArmy | units = (List.append oldArmy.units newArmy.units) }
 
 
 setError : Model -> String -> ( Model, Cmd Action )

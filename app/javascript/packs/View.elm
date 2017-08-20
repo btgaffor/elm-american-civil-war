@@ -109,20 +109,9 @@ army army =
                         []
                     , div
                         [ class "army-info" ]
-                        [ text ((totalUnits army |> toString) ++ " Units") ]
+                        [ text (((List.length army.units) |> toString) ++ " Units") ]
                     ]
                 ]
-
-
-totalUnits : Army -> Int
-totalUnits army =
-    List.sum
-        [ army.infantry
-        , army.artillary
-        , army.cavalry
-        , army.eliteCavalry
-        , army.leader
-        ]
 
 
 sidebar : Model -> Html Action
@@ -218,11 +207,55 @@ armyInfo model =
                 div [] []
 
             Just army ->
-                div []
-                    [ h5 [] [ text "Army Details" ]
-                    , div [] [ text ((army.infantry |> toString) ++ " Infantry") ]
-                    , div [] [ text ((army.artillary |> toString) ++ " Artillary") ]
-                    , div [] [ text ((army.cavalry |> toString) ++ " Cavalry") ]
-                    , div [] [ text ((army.eliteCavalry |> toString) ++ " Elite Cavalry") ]
-                    , div [] [ text ((army.leader |> toString) ++ " Leaders") ]
-                    ]
+                let
+                    counts =
+                        armyCounts army
+                in
+                    div []
+                        [ h5 [] [ text "Army Details" ]
+                        , div [] [ text ((counts.infantry |> toString) ++ " Infantry") ]
+                        , div [] [ text ((counts.artillary |> toString) ++ " Artillary") ]
+                        , div [] [ text ((counts.cavalry |> toString) ++ " Cavalry") ]
+                        , div [] [ text ((counts.eliteCavalry |> toString) ++ " Elite Cavalry") ]
+                        , div [] [ text ((counts.leader |> toString) ++ " Leaders") ]
+                        ]
+
+
+type alias ArmyCounts =
+    { infantry : Int
+    , artillary : Int
+    , cavalry : Int
+    , eliteCavalry : Int
+    , leader : Int
+    }
+
+
+{-| count up the total number of each type of unit in the army
+-}
+armyCounts : Army -> ArmyCounts
+armyCounts army =
+    List.foldl
+        (\unit memo ->
+            case unit.unitType of
+                Infantry ->
+                    { memo | infantry = memo.infantry + 1 }
+
+                Artillary ->
+                    { memo | artillary = memo.artillary + 1 }
+
+                Cavalry ->
+                    { memo | cavalry = memo.cavalry + 1 }
+
+                EliteCavalry ->
+                    { memo | eliteCavalry = memo.eliteCavalry + 1 }
+
+                Leader ->
+                    { memo | leader = memo.leader + 1 }
+        )
+        { infantry = 0
+        , artillary = 0
+        , cavalry = 0
+        , eliteCavalry = 0
+        , leader = 0
+        }
+        army.units

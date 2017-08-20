@@ -63,12 +63,12 @@ type alias Position =
 
 type alias Army =
     { side : Side
-    , infantry : Int
-    , artillary : Int
-    , cavalry : Int
-    , eliteCavalry : Int
-    , leader : Int
+    , units : List Unit
     }
+
+
+type alias Unit =
+    { unitType : UnitType }
 
 
 
@@ -89,11 +89,7 @@ model =
               , army =
                     Just
                         { side = Union
-                        , infantry = 1
-                        , artillary = 0
-                        , cavalry = 0
-                        , eliteCavalry = 0
-                        , leader = 0
+                        , units = [ { unitType = Infantry } ]
                         }
               , connections = [ 1, 2 ]
               }
@@ -102,11 +98,13 @@ model =
               , army =
                     Just
                         { side = Union
-                        , infantry = 1
-                        , artillary = 1
-                        , cavalry = 1
-                        , eliteCavalry = 1
-                        , leader = 1
+                        , units =
+                            [ { unitType = Infantry }
+                            , { unitType = Artillary }
+                            , { unitType = Cavalry }
+                            , { unitType = EliteCavalry }
+                            , { unitType = Leader }
+                            ]
                         }
               , connections = [ 0, 3 ]
               }
@@ -115,11 +113,7 @@ model =
               , army =
                     Just
                         { side = Union
-                        , infantry = 1
-                        , artillary = 0
-                        , cavalry = 0
-                        , eliteCavalry = 0
-                        , leader = 0
+                        , units = [ { unitType = Infantry } ]
                         }
               , connections = [ 0, 3, 4, 5, 11 ]
               }
@@ -128,11 +122,7 @@ model =
               , army =
                     Just
                         { side = Union
-                        , infantry = 1
-                        , artillary = 0
-                        , cavalry = 0
-                        , eliteCavalry = 0
-                        , leader = 0
+                        , units = [ { unitType = Infantry } ]
                         }
               , connections = [ 1, 2, 4, 8 ]
               }
@@ -141,11 +131,7 @@ model =
               , army =
                     Just
                         { side = Union
-                        , infantry = 1
-                        , artillary = 0
-                        , cavalry = 0
-                        , eliteCavalry = 0
-                        , leader = 0
+                        , units = [ { unitType = Infantry } ]
                         }
               , connections = [ 2, 3, 10, 13 ]
               }
@@ -184,11 +170,7 @@ model =
               , army =
                     Just
                         { side = Confederate
-                        , infantry = 1
-                        , artillary = 0
-                        , cavalry = 0
-                        , eliteCavalry = 0
-                        , leader = 0
+                        , units = [ { unitType = Infantry } ]
                         }
               , connections = [ 2, 5, 12, 13 ]
               }
@@ -197,11 +179,7 @@ model =
               , army =
                     Just
                         { side = Confederate
-                        , infantry = 1
-                        , artillary = 0
-                        , cavalry = 0
-                        , eliteCavalry = 0
-                        , leader = 0
+                        , units = [ { unitType = Infantry } ]
                         }
               , connections = [ 7, 11, 13, 14, 15 ]
               }
@@ -210,11 +188,7 @@ model =
               , army =
                     Just
                         { side = Confederate
-                        , infantry = 1
-                        , artillary = 0
-                        , cavalry = 0
-                        , eliteCavalry = 0
-                        , leader = 0
+                        , units = [ { unitType = Infantry } ]
                         }
               , connections = [ 4, 10, 11, 12, 14, 15 ]
               }
@@ -223,11 +197,13 @@ model =
               , army =
                     Just
                         { side = Confederate
-                        , infantry = 1
-                        , artillary = 1
-                        , cavalry = 1
-                        , eliteCavalry = 1
-                        , leader = 1
+                        , units =
+                            [ { unitType = Infantry }
+                            , { unitType = Artillary }
+                            , { unitType = Cavalry }
+                            , { unitType = EliteCavalry }
+                            , { unitType = Leader }
+                            ]
                         }
               , connections = [ 12, 13, 15 ]
               }
@@ -236,11 +212,7 @@ model =
               , army =
                     Just
                         { side = Confederate
-                        , infantry = 1
-                        , artillary = 0
-                        , cavalry = 0
-                        , eliteCavalry = 0
-                        , leader = 0
+                        , units = [ { unitType = Infantry } ]
                         }
               , connections = [ 12, 13, 14 ]
               }
