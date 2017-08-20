@@ -4,13 +4,6 @@ import Array
 import Window exposing (Size)
 
 
--- type CurrentState = Idle
---                   | MovingArmy
---                   | ChoosingUnitSide
---                   | ChoosingUnitType Side
---                   | PlacingUnit Side UnitType
-
-
 type AddingUnitState
     = ChoosingUnitSide
     | ChoosingUnitType Side
