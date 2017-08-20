@@ -207,55 +207,53 @@ armyInfo model =
                 div [] []
 
             Just army ->
-                let
-                    counts =
-                        armyCounts army
-                in
-                    div []
-                        [ h5 [] [ text "Army Details" ]
-                        , div [] [ text ((counts.infantry |> toString) ++ " Infantry") ]
-                        , div [] [ text ((counts.artillary |> toString) ++ " Artillary") ]
-                        , div [] [ text ((counts.cavalry |> toString) ++ " Cavalry") ]
-                        , div [] [ text ((counts.eliteCavalry |> toString) ++ " Elite Cavalry") ]
-                        , div [] [ text ((counts.leader |> toString) ++ " Leaders") ]
-                        ]
+                div []
+                    [ h5 [] [ text "Army Details" ]
+                    , div []
+                        (List.map (\unit -> unitInfo unit) (List.sortWith compareUnits army.units))
+                    ]
 
 
-type alias ArmyCounts =
-    { infantry : Int
-    , artillary : Int
-    , cavalry : Int
-    , eliteCavalry : Int
-    , leader : Int
-    }
+unitInfo : Unit -> Html Action
+unitInfo unit =
+    div [] [ text ((toString unit.unitType) ++ " - " ++ (toString unit.moves) ++ " moves") ]
 
 
-{-| count up the total number of each type of unit in the army
--}
-armyCounts : Army -> ArmyCounts
-armyCounts army =
-    List.foldl
-        (\unit memo ->
-            case unit.unitType of
-                Infantry ->
-                    { memo | infantry = memo.infantry + 1 }
+compareUnits : Unit -> Unit -> Order
+compareUnits a b =
+    case compare (unitTypeOrder a.unitType) (unitTypeOrder b.unitType) of
+        LT ->
+            LT
 
-                Artillary ->
-                    { memo | artillary = memo.artillary + 1 }
+        GT ->
+            GT
 
-                Cavalry ->
-                    { memo | cavalry = memo.cavalry + 1 }
+        EQ ->
+            case compare a.moves b.moves of
+                LT ->
+                    GT
 
-                EliteCavalry ->
-                    { memo | eliteCavalry = memo.eliteCavalry + 1 }
+                GT ->
+                    LT
 
-                Leader ->
-                    { memo | leader = memo.leader + 1 }
-        )
-        { infantry = 0
-        , artillary = 0
-        , cavalry = 0
-        , eliteCavalry = 0
-        , leader = 0
-        }
-        army.units
+                EQ ->
+                    EQ
+
+
+unitTypeOrder : UnitType -> Int
+unitTypeOrder unitType =
+    case unitType of
+        Infantry ->
+            0
+
+        Artillary ->
+            1
+
+        Cavalry ->
+            2
+
+        EliteCavalry ->
+            3
+
+        Leader ->
+            4

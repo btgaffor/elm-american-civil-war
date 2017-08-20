@@ -144,7 +144,7 @@ moveArmy model oldIndex newIndex =
                             let
                                 -- subtract one from the movement of all units moving
                                 movedArmy =
-                                    Just { oldArmy | units = (List.map (\unit -> { unit | moves = unit.moves - 1 }) oldArmy.units) }
+                                    { oldArmy | units = (List.map (\unit -> { unit | moves = unit.moves - 1 }) oldArmy.units) }
                             in
                                 case newRegion.army of
                                     Nothing ->
@@ -154,7 +154,7 @@ moveArmy model oldIndex newIndex =
                                             , regions =
                                                 model.regions
                                                     |> Array.set oldIndex { oldRegion | army = Nothing }
-                                                    |> Array.set newIndex { newRegion | army = movedArmy }
+                                                    |> Array.set newIndex { newRegion | army = Just movedArmy }
                                         }
 
                                     Just newArmy ->
@@ -165,7 +165,7 @@ moveArmy model oldIndex newIndex =
                                                 , regions =
                                                     model.regions
                                                         |> Array.set oldIndex { oldRegion | army = Nothing }
-                                                        |> Array.set newIndex { newRegion | army = (joinArmies oldArmy newArmy) }
+                                                        |> Array.set newIndex { newRegion | army = (joinArmies movedArmy newArmy) }
                                             }
                                         else
                                             -- TODO
