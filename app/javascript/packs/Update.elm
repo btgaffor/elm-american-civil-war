@@ -51,7 +51,7 @@ update action model =
                 MovingArmy ->
                     case model.selectedRegion of
                         Nothing ->
-                            setError model "No region selected, resetting state."
+                            setError model "No region selected, resetting state." ! []
 
                         Just selectedRegionIndex ->
                             if selectedRegionIndex == clickedIndex then
@@ -59,7 +59,7 @@ update action model =
                             else
                                 case (Array.get selectedRegionIndex model.regions) of
                                     Nothing ->
-                                        setError model "Selected region does not exist, resetting state."
+                                        setError model "Selected region does not exist, resetting state." ! []
 
                                     Just selectedRegion ->
                                         if (listContains selectedRegion.connections clickedIndex) then
@@ -118,35 +118,43 @@ moveArmy model oldIndex newIndex =
     case
         Result.map2
             (\newRegion oldRegion ->
-                Maybe.withDefault
-                    -- move the army from the old region to the new one.
-                    -- it doesn't matter if the old region had no army, since it'll
-                    -- just be nothing in the new region anyway
-                    { model
-                        | selectedRegion = Just newIndex
-                        , regions =
-                            model.regions
-                                |> Array.set oldIndex { oldRegion | army = Nothing }
-                                |> Array.set newIndex { newRegion | army = oldRegion.army }
-                    }
-                    (Maybe.map2
-                        (\newArmy oldArmy ->
-                            -- if the armies are the same, join them in the new region
-                            if newArmy.side == oldArmy.side then
-                                { model
-                                    | selectedRegion = Just newIndex
-                                    , regions =
-                                        model.regions
-                                            |> Array.set oldIndex { oldRegion | army = Nothing }
-                                            |> Array.set newIndex { newRegion | army = (joinArmies oldArmy newArmy) }
-                                }
-                            else
-                                -- TODO
-                                { model | error = Just "Battles not implemented yet." }
-                        )
-                        newRegion.army
-                        oldRegion.army
-                    )
+                case oldRegion.army of
+                    Nothing ->
+                        setError model "Trying to move an army that doesn't exist. Resetting state."
+
+                    Just oldArmy ->
+                        if List.all (\unit -> unit.moves >= 1) oldArmy.units then
+                            let
+                                -- subtract one from the movement of all units moving
+                                movedArmy =
+                                    Just { oldArmy | units = (List.map (\unit -> { unit | moves = unit.moves - 1 }) oldArmy.units) }
+                            in
+                                case newRegion.army of
+                                    Nothing ->
+                                        -- move the army to the empty region
+                                        { model
+                                            | selectedRegion = Just newIndex
+                                            , regions =
+                                                model.regions
+                                                    |> Array.set oldIndex { oldRegion | army = Nothing }
+                                                    |> Array.set newIndex { newRegion | army = movedArmy }
+                                        }
+
+                                    Just newArmy ->
+                                        if newArmy.side == oldArmy.side then
+                                            -- join the armies
+                                            { model
+                                                | selectedRegion = Just newIndex
+                                                , regions =
+                                                    model.regions
+                                                        |> Array.set oldIndex { oldRegion | army = Nothing }
+                                                        |> Array.set newIndex { newRegion | army = (joinArmies oldArmy newArmy) }
+                                            }
+                                        else
+                                            -- TODO
+                                            { model | error = Just "Battles not implemented yet." }
+                        else
+                            { model | error = Just "At least one unit in the army has no more movement points. Consider splitting the army." }
             )
             (Array.get newIndex model.regions
                 |> Result.fromMaybe "Destination region does not exist. Resetting state."
@@ -159,7 +167,7 @@ moveArmy model oldIndex newIndex =
             ( newModel, Cmd.none )
 
         Err error ->
-            setError model error
+            setError model error ! []
 
 
 joinArmies : Army -> Army -> Maybe Army
@@ -167,15 +175,13 @@ joinArmies oldArmy newArmy =
     Just { oldArmy | units = (List.append oldArmy.units newArmy.units) }
 
 
-setError : Model -> String -> ( Model, Cmd Action )
+setError : Model -> String -> Model
 setError model message =
-    ( { model
+    { model
         | error = Just message
         , selectedRegion = Nothing
         , currentState = Idle
-      }
-    , Cmd.none
-    )
+    }
 
 
 init : ( Model, Cmd Action )
