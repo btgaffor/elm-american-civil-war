@@ -71,12 +71,29 @@ update action model =
             addUnit model addUnitAction
 
         EndTurn ->
-            case model.turn of
-                Union ->
-                    { model | turn = Confederate } ! []
+            let
+                -- reset the movement points of all units
+                regions =
+                    Array.map
+                        (\region ->
+                            case region.army of
+                                Nothing ->
+                                    region
 
-                Confederate ->
-                    { model | turn = Union } ! []
+                                Just army ->
+                                    { region
+                                        | army =
+                                            Just { army | units = List.map (\unit -> resetMoves unit) army.units }
+                                    }
+                        )
+                        model.regions
+            in
+                case model.turn of
+                    Union ->
+                        { model | turn = Confederate, regions = regions } ! []
+
+                    Confederate ->
+                        { model | turn = Union, regions = regions } ! []
 
 
 selectRegion : Model -> Int -> ( Model, Cmd Action )
@@ -173,6 +190,25 @@ moveArmy model oldIndex newIndex =
 joinArmies : Army -> Army -> Maybe Army
 joinArmies oldArmy newArmy =
     Just { oldArmy | units = (List.append oldArmy.units newArmy.units) }
+
+
+resetMoves : Unit -> Unit
+resetMoves unit =
+    case unit.unitType of
+        Infantry ->
+            { unit | moves = 1 }
+
+        Artillary ->
+            { unit | moves = 1 }
+
+        Cavalry ->
+            { unit | moves = 2 }
+
+        EliteCavalry ->
+            { unit | moves = 2 }
+
+        Leader ->
+            { unit | moves = 2 }
 
 
 setError : Model -> String -> Model
