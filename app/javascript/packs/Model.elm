@@ -68,7 +68,32 @@ type alias Army =
 
 
 type alias Unit =
-    { unitType : UnitType }
+    { unitType : UnitType, moves : Int }
+
+
+infantry : Unit
+infantry =
+    { unitType = Infantry, moves = 1 }
+
+
+artillary : Unit
+artillary =
+    { unitType = Artillary, moves = 1 }
+
+
+cavalry : Unit
+cavalry =
+    { unitType = Cavalry, moves = 2 }
+
+
+eliteCavalry : Unit
+eliteCavalry =
+    { unitType = EliteCavalry, moves = 2 }
+
+
+leader : Unit
+leader =
+    { unitType = Leader, moves = 2 }
 
 
 
@@ -89,7 +114,7 @@ model =
               , army =
                     Just
                         { side = Union
-                        , units = [ { unitType = Infantry } ]
+                        , units = [ infantry ]
                         }
               , connections = [ 1, 2 ]
               }
@@ -99,11 +124,11 @@ model =
                     Just
                         { side = Union
                         , units =
-                            [ { unitType = Infantry }
-                            , { unitType = Artillary }
-                            , { unitType = Cavalry }
-                            , { unitType = EliteCavalry }
-                            , { unitType = Leader }
+                            [ infantry
+                            , artillary
+                            , cavalry
+                            , eliteCavalry
+                            , leader
                             ]
                         }
               , connections = [ 0, 3 ]
@@ -113,7 +138,7 @@ model =
               , army =
                     Just
                         { side = Union
-                        , units = [ { unitType = Infantry } ]
+                        , units = [ infantry ]
                         }
               , connections = [ 0, 3, 4, 5, 11 ]
               }
@@ -122,7 +147,7 @@ model =
               , army =
                     Just
                         { side = Union
-                        , units = [ { unitType = Infantry } ]
+                        , units = [ infantry ]
                         }
               , connections = [ 1, 2, 4, 8 ]
               }
@@ -131,7 +156,7 @@ model =
               , army =
                     Just
                         { side = Union
-                        , units = [ { unitType = Infantry } ]
+                        , units = [ infantry ]
                         }
               , connections = [ 2, 3, 10, 13 ]
               }
@@ -170,7 +195,7 @@ model =
               , army =
                     Just
                         { side = Confederate
-                        , units = [ { unitType = Infantry } ]
+                        , units = [ infantry ]
                         }
               , connections = [ 2, 5, 12, 13 ]
               }
@@ -179,7 +204,7 @@ model =
               , army =
                     Just
                         { side = Confederate
-                        , units = [ { unitType = Infantry } ]
+                        , units = [ infantry ]
                         }
               , connections = [ 7, 11, 13, 14, 15 ]
               }
@@ -188,7 +213,7 @@ model =
               , army =
                     Just
                         { side = Confederate
-                        , units = [ { unitType = Infantry } ]
+                        , units = [ infantry ]
                         }
               , connections = [ 4, 10, 11, 12, 14, 15 ]
               }
@@ -198,11 +223,11 @@ model =
                     Just
                         { side = Confederate
                         , units =
-                            [ { unitType = Infantry }
-                            , { unitType = Artillary }
-                            , { unitType = Cavalry }
-                            , { unitType = EliteCavalry }
-                            , { unitType = Leader }
+                            [ infantry
+                            , artillary
+                            , cavalry
+                            , eliteCavalry
+                            , leader
                             ]
                         }
               , connections = [ 12, 13, 15 ]
@@ -212,7 +237,7 @@ model =
               , army =
                     Just
                         { side = Confederate
-                        , units = [ { unitType = Infantry } ]
+                        , units = [ infantry ]
                         }
               , connections = [ 12, 13, 14 ]
               }
