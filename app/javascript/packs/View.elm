@@ -15,7 +15,7 @@ view model =
     div []
         [ errorModal model
         , img [ src "map_v2.png" ] []
-        , div [] (Array.toList (Array.indexedMap (renderRegion model.selectedRegion) model.regions))
+        , div [] (Array.toList (Array.indexedMap (renderRegion <| selectedRegion <| model) model.regions))
         , sidebar model
         ]
 
@@ -141,10 +141,10 @@ stateHeader model =
             Idle ->
                 h1 [] [ text "Idle" ]
 
-            MovingArmy army ->
+            MovingArmy selectedRegionIndex army ->
                 h1 [] [ text "Moving an Army" ]
 
-            SplittingArmy oldArmy newArmy ->
+            SplittingArmy selectedRegionIndex oldArmy newArmy ->
                 h1 [] [ text "Splitting an Army" ]
 
             AddingUnit addingUnitState ->
@@ -172,7 +172,7 @@ sidebarButtons model =
                 , div [] [ button [ onClick (AddUnit Start) ] [ text "Add Unit" ] ]
                 ]
 
-        MovingArmy army ->
+        MovingArmy selectedRegionIndex army ->
             div []
                 [ if List.length army.units > 1 then
                     div [] [ button [ onClick (SplitArmy) ] [ text "Split Army" ] ]
@@ -180,7 +180,7 @@ sidebarButtons model =
                     text ""
                 ]
 
-        SplittingArmy oldArmy newArmy ->
+        SplittingArmy selectedRegionIndex oldArmy newArmy ->
             text ""
 
         AddingUnit addingUnitState ->
@@ -210,7 +210,7 @@ sidebarButtons model =
 armyInfo : Model -> Html Action
 armyInfo model =
     case model.currentState of
-        SplittingArmy oldArmy newArmy ->
+        SplittingArmy selectedRegionIndex oldArmy newArmy ->
             div []
                 [ h5 [] [ text "Existing Army" ]
                 , div []
@@ -226,7 +226,7 @@ armyInfo model =
                     )
                 ]
 
-        MovingArmy army ->
+        MovingArmy selectedRegionIndex army ->
             div []
                 [ h5 []
                     [ text "Army Details" ]

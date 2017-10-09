@@ -12,8 +12,8 @@ type AddingUnitState
 
 type CurrentState
     = Idle
-    | MovingArmy Army
-    | SplittingArmy Army Army
+    | MovingArmy Int Army
+    | SplittingArmy Int Army Army
     | AddingUnit AddingUnitState
 
 
@@ -36,7 +36,6 @@ type alias Model =
     , mousey : Int
     , windowSize : Size
     , regions : Array.Array Region
-    , selectedRegion : Maybe Int
     , turn : Side
     , currentState : CurrentState
     }
@@ -100,7 +99,6 @@ model =
     , mousex = 0
     , mousey = 0
     , windowSize = { width = 0, height = 0 }
-    , selectedRegion = Nothing
     , regions =
         Array.fromList
             [ { -- 0
@@ -239,3 +237,20 @@ model =
     , turn = Confederate
     , currentState = Idle
     }
+
+
+
+-- UTILITIES
+
+
+selectedRegion : Model -> Maybe Int
+selectedRegion model =
+    case model.currentState of
+        MovingArmy selectedRegionIndex _ ->
+            Just selectedRegionIndex
+
+        SplittingArmy selectedRegionIndex _ _ ->
+            Just selectedRegionIndex
+
+        _ ->
+            Nothing
