@@ -14,6 +14,9 @@ type Action
     | WindowResize Size
     | ClearError
     | ClickRegion Int
+    | SplitArmy
+    | AddUnitToSplit Unit
+    | RemoveUnitFromSplit Unit
     | AddUnit AddUnitAction
     | EndTurn
 
@@ -46,17 +49,40 @@ update action model =
                 AddingUnit addingUnitState ->
                     model ! []
 
+                SplittingArmy oldArmy newArmy ->
+                    case model.selectedRegion of
+                        Nothing ->
+                            setError model "No region selected, cannot return armies." ! []
+
+                        Just selectedRegionIndex ->
+                            case (Array.get selectedRegionIndex model.regions) of
+                                Nothing ->
+                                    setError model "Selected region does not exist, cannot return armies." ! []
+
+                                Just region ->
+                                    if selectedRegionIndex == clickedIndex then
+                                        -- cancel the splitting and put both armies back
+                                        deselectRegion (joinArmies oldArmy newArmy) model
+                                    else if (listContains region.connections clickedIndex) then
+                                        -- put the old army back and move the new army
+                                        model
+                                            |> deselectRegion oldArmy
+                                            |> Tuple.first
+                                            |> moveArmy newArmy selectedRegionIndex clickedIndex
+                                    else
+                                        model ! []
+
                 Idle ->
                     selectRegion model clickedIndex
 
-                MovingArmy ->
+                MovingArmy army ->
                     case model.selectedRegion of
                         Nothing ->
                             setError model "No region selected, resetting state." ! []
 
                         Just selectedRegionIndex ->
                             if selectedRegionIndex == clickedIndex then
-                                deselectRegion model
+                                deselectRegion army model
                             else
                                 case (Array.get selectedRegionIndex model.regions) of
                                     Nothing ->
@@ -64,9 +90,51 @@ update action model =
 
                                     Just selectedRegion ->
                                         if (listContains selectedRegion.connections clickedIndex) then
-                                            moveArmy model selectedRegionIndex clickedIndex
+                                            moveArmy army selectedRegionIndex clickedIndex model
                                         else
-                                            { model | error = Just "Please select one of the yellow regions." } ! []
+                                            { model | error = Just "Please select one of the highlighted regions." } ! []
+
+        SplitArmy ->
+            case model.currentState of
+                MovingArmy army ->
+                    { model | currentState = (SplittingArmy army { side = model.turn, units = [] }) } ! []
+
+                _ ->
+                    model ! []
+
+        AddUnitToSplit movingUnit ->
+            case model.currentState of
+                SplittingArmy oldArmy newArmy ->
+                    let
+                        modifiedNewArmy =
+                            { newArmy | units = movingUnit :: newArmy.units }
+
+                        modifiedOldArmy =
+                            { oldArmy
+                                | units = List.filter ((/=) movingUnit) oldArmy.units
+                            }
+                    in
+                        { model | currentState = SplittingArmy modifiedOldArmy modifiedNewArmy } ! []
+
+                _ ->
+                    model ! []
+
+        RemoveUnitFromSplit movingUnit ->
+            case model.currentState of
+                SplittingArmy oldArmy newArmy ->
+                    let
+                        modifiedNewArmy =
+                            { newArmy
+                                | units = List.filter ((/=) movingUnit) newArmy.units
+                            }
+
+                        modifiedOldArmy =
+                            { oldArmy | units = movingUnit :: oldArmy.units }
+                    in
+                        { model | currentState = SplittingArmy modifiedOldArmy modifiedNewArmy } ! []
+
+                _ ->
+                    model ! []
 
         AddUnit addUnitAction ->
             addUnit model addUnitAction
@@ -99,20 +167,47 @@ update action model =
 
 selectRegion : Model -> Int -> ( Model, Cmd Action )
 selectRegion model clickedIndex =
-    case Array.get clickedIndex model.regions |> andThen .army of
+    case Array.get clickedIndex model.regions of
         Nothing ->
             model ! []
 
-        Just army ->
-            if army.side == model.turn then
-                { model | selectedRegion = Just clickedIndex, currentState = MovingArmy } ! []
-            else
-                model ! []
+        Just clickedRegion ->
+            case clickedRegion.army of
+                Nothing ->
+                    model ! []
+
+                Just army ->
+                    if army.side == model.turn then
+                        { model
+                            | selectedRegion = Just clickedIndex
+                            , regions =
+                                model.regions
+                                    |> Array.set clickedIndex { clickedRegion | army = Nothing }
+                            , currentState = MovingArmy army
+                        }
+                            ! []
+                    else
+                        model ! []
 
 
-deselectRegion : Model -> ( Model, Cmd Action )
-deselectRegion model =
-    { model | selectedRegion = Nothing, currentState = Idle } ! []
+deselectRegion : Army -> Model -> ( Model, Cmd Action )
+deselectRegion army model =
+    case model.selectedRegion of
+        Nothing ->
+            { model | currentState = Idle } ! []
+
+        Just regionIndex ->
+            case Array.get regionIndex model.regions of
+                Nothing ->
+                    { model | selectedRegion = Nothing, currentState = Idle } ! []
+
+                Just region ->
+                    { model
+                        | selectedRegion = Nothing
+                        , currentState = Idle
+                        , regions = model.regions |> Array.set regionIndex { region | army = Just army }
+                    }
+                        ! []
 
 
 addUnit : Model -> AddUnitAction -> ( Model, Cmd Action )
@@ -131,8 +226,8 @@ addUnit model addUnitAction =
             { model | currentState = Idle } ! []
 
 
-moveArmy : Model -> Int -> Int -> ( Model, Cmd Action )
-moveArmy model oldIndex newIndex =
+moveArmy : Army -> Int -> Int -> Model -> ( Model, Cmd Action )
+moveArmy movingArmy oldIndex newIndex model =
     (case (Array.get newIndex model.regions) of
         Nothing ->
             Stop (setError model "Destination region does not exist. Resetting state.")
@@ -151,35 +246,25 @@ moveArmy model oldIndex newIndex =
             )
         |> Chain.andThen
             (\( newRegion, oldRegion ) ->
-                case oldRegion.army of
-                    Nothing ->
-                        Stop (setError model "Trying to move an army that doesn't exist. Resetting state.")
-
-                    Just oldArmy ->
-                        if List.any (\unit -> unit.moves < 1) oldArmy.units then
-                            Stop { model | error = Just "At least one unit in the army has no more movement points. Consider splitting the army." }
-                        else
-                            let
-                                -- subtract one from the movement of all units moving
-                                movedArmy =
-                                    { oldArmy | units = (List.map (\unit -> { unit | moves = unit.moves - 1 }) oldArmy.units) }
-                            in
-                                Continue ( newRegion, oldRegion, movedArmy )
+                if List.any (\unit -> unit.moves < 1) movingArmy.units then
+                    Stop { model | error = Just "At least one unit in the army has no more movement points. Consider splitting the army." }
+                else
+                    let
+                        -- subtract one from the movement of all units moving
+                        movedArmy =
+                            { movingArmy | units = (List.map (\unit -> { unit | moves = unit.moves - 1 }) movingArmy.units) }
+                    in
+                        Continue ( newRegion, oldRegion, movedArmy )
             )
         |> Chain.andThen
             (\( newRegion, oldRegion, movedArmy ) ->
                 case newRegion.army of
                     Nothing ->
-                        -- move the army to the empty region
                         Stop
-                            ({ model
+                            { model
                                 | selectedRegion = Just newIndex
-                                , regions =
-                                    model.regions
-                                        |> Array.set oldIndex { oldRegion | army = Nothing }
-                                        |> Array.set newIndex { newRegion | army = Just movedArmy }
-                             }
-                            )
+                                , currentState = MovingArmy movedArmy
+                            }
 
                     Just newArmy ->
                         if newArmy.side == movedArmy.side then
@@ -187,10 +272,8 @@ moveArmy model oldIndex newIndex =
                             Stop
                                 ({ model
                                     | selectedRegion = Just newIndex
-                                    , regions =
-                                        model.regions
-                                            |> Array.set oldIndex { oldRegion | army = Nothing }
-                                            |> Array.set newIndex { newRegion | army = (joinArmies movedArmy newArmy) }
+                                    , currentState = MovingArmy (joinArmies movedArmy newArmy)
+                                    , regions = model.regions |> Array.set newIndex { newRegion | army = Nothing }
                                  }
                                 )
                         else
@@ -200,9 +283,9 @@ moveArmy model oldIndex newIndex =
         |> (\chainModel -> Chain.flatten chainModel ! [])
 
 
-joinArmies : Army -> Army -> Maybe Army
+joinArmies : Army -> Army -> Army
 joinArmies oldArmy newArmy =
-    Just { oldArmy | units = (List.append oldArmy.units newArmy.units) }
+    { oldArmy | units = (List.append oldArmy.units newArmy.units) }
 
 
 resetMoves : Unit -> Unit

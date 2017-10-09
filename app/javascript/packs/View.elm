@@ -4,7 +4,7 @@ import Html exposing (Html, h1, h3, h5, div, text, img, button)
 import Html.Attributes exposing (id, class, style, src)
 import Html.Events exposing (onClick)
 import Array
-import Maybe exposing (..)
+import Maybe exposing (andThen)
 import Model exposing (..)
 import Update exposing (..)
 import Utils exposing (..)
@@ -68,7 +68,9 @@ renderRegion selectedRegion index region =
                     "inherit"
 
                 Just selectedRegion ->
-                    if (listContains region.connections selectedRegion) then
+                    if selectedRegion == index then
+                        "green"
+                    else if (listContains region.connections selectedRegion) then
                         "yellow"
                     else
                         "inherit"
@@ -139,8 +141,11 @@ stateHeader model =
             Idle ->
                 h1 [] [ text "Idle" ]
 
-            MovingArmy ->
+            MovingArmy army ->
                 h1 [] [ text "Moving an Army" ]
+
+            SplittingArmy oldArmy newArmy ->
+                h1 [] [ text "Splitting an Army" ]
 
             AddingUnit addingUnitState ->
                 div []
@@ -167,8 +172,16 @@ sidebarButtons model =
                 , div [] [ button [ onClick (AddUnit Start) ] [ text "Add Unit" ] ]
                 ]
 
-        MovingArmy ->
-            div [] []
+        MovingArmy army ->
+            div []
+                [ if List.length army.units > 1 then
+                    div [] [ button [ onClick (SplitArmy) ] [ text "Split Army" ] ]
+                  else
+                    text ""
+                ]
+
+        SplittingArmy oldArmy newArmy ->
+            text ""
 
         AddingUnit addingUnitState ->
             case addingUnitState of
@@ -196,27 +209,78 @@ sidebarButtons model =
 
 armyInfo : Model -> Html Action
 armyInfo model =
-    let
-        army =
-            model.selectedRegion
-                |> andThen (\index -> Array.get index model.regions)
-                |> andThen (\region -> region.army)
-    in
-        case army of
-            Nothing ->
-                div [] []
+    case model.currentState of
+        SplittingArmy oldArmy newArmy ->
+            div []
+                [ h5 [] [ text "Existing Army" ]
+                , div []
+                    (List.map
+                        existingUnitInfo
+                        (List.sortWith compareUnits oldArmy.units)
+                    )
+                , h5 [] [ text "New Army" ]
+                , div []
+                    (List.map
+                        newUnitInfo
+                        (List.sortWith compareUnits newArmy.units)
+                    )
+                ]
 
-            Just army ->
-                div []
-                    [ h5 [] [ text "Army Details" ]
-                    , div []
-                        (List.map (\unit -> unitInfo unit) (List.sortWith compareUnits army.units))
-                    ]
+        MovingArmy army ->
+            div []
+                [ h5 []
+                    [ text "Army Details" ]
+                , div []
+                    (List.map
+                        basicUnitInfo
+                        (List.sortWith compareUnits army.units)
+                    )
+                ]
+
+        _ ->
+            text ""
 
 
-unitInfo : Unit -> Html Action
-unitInfo unit =
-    div [] [ text ((toString unit.unitType) ++ " - " ++ (toString unit.moves) ++ " moves") ]
+basicUnitInfo : Unit -> Html Action
+basicUnitInfo unit =
+    div []
+        [ text (unitMoves unit)
+        ]
+
+
+existingUnitInfo : Unit -> Html Action
+existingUnitInfo unit =
+    div []
+        [ button
+            [ onClick (AddUnitToSplit unit)
+            , style
+                [ ( "visibility"
+                  , (if unit.moves > 0 then
+                        "inherit"
+                     else
+                        "hidden"
+                    )
+                  )
+                ]
+            ]
+            [ text "+" ]
+        , text " "
+        , text (unitMoves unit)
+        ]
+
+
+newUnitInfo : Unit -> Html Action
+newUnitInfo unit =
+    div []
+        [ button [ onClick (RemoveUnitFromSplit unit) ] [ text "-" ]
+        , text " "
+        , text (unitMoves unit)
+        ]
+
+
+unitMoves : Unit -> String
+unitMoves unit =
+    ((toString unit.unitType) ++ " - " ++ (toString unit.moves) ++ " moves")
 
 
 compareUnits : Unit -> Unit -> Order

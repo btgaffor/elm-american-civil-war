@@ -12,7 +12,8 @@ type AddingUnitState
 
 type CurrentState
     = Idle
-    | MovingArmy
+    | MovingArmy Army
+    | SplittingArmy Army Army
     | AddingUnit AddingUnitState
 
 
