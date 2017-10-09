@@ -1,6 +1,7 @@
 module Model exposing (..)
 
 import Array
+import Set exposing (Set)
 import Window exposing (Size)
 
 
@@ -44,7 +45,7 @@ type alias Model =
 type alias Region =
     { position : Position
     , army : Maybe Army
-    , connections : List Int
+    , connections : Set Int
     }
 
 
@@ -108,7 +109,7 @@ model =
                         { side = Union
                         , units = [ infantry ]
                         }
-              , connections = [ 1, 2 ]
+              , connections = Set.fromList [ 1, 2 ]
               }
             , { -- 1
                 position = { left = 147, top = 211 }
@@ -123,7 +124,7 @@ model =
                             , leader
                             ]
                         }
-              , connections = [ 0, 3 ]
+              , connections = Set.fromList [ 0, 3 ]
               }
             , { -- 2
                 position = { left = 329, top = 158 }
@@ -132,7 +133,7 @@ model =
                         { side = Union
                         , units = [ infantry ]
                         }
-              , connections = [ 0, 3, 4, 5, 11 ]
+              , connections = Set.fromList [ 0, 3, 4, 5, 11 ]
               }
             , { -- 3
                 position = { left = 200, top = 265 }
@@ -141,7 +142,7 @@ model =
                         { side = Union
                         , units = [ infantry ]
                         }
-              , connections = [ 1, 2, 4, 8 ]
+              , connections = Set.fromList [ 1, 2, 4, 8 ]
               }
             , { -- 4
                 position = { left = 334, top = 271 }
@@ -150,37 +151,37 @@ model =
                         { side = Union
                         , units = [ infantry ]
                         }
-              , connections = [ 2, 3, 10, 13 ]
+              , connections = Set.fromList [ 2, 3, 10, 13 ]
               }
             , { -- 5
                 position = { left = 424, top = 71 }
               , army = Nothing
-              , connections = [ 2, 6, 7, 11 ]
+              , connections = Set.fromList [ 2, 6, 7, 11 ]
               }
             , { -- 6
                 position = { left = 475, top = 101 }
               , army = Nothing
-              , connections = [ 5 ]
+              , connections = Set.fromList [ 5 ]
               }
             , { -- 7
                 position = { left = 632, top = 100 }
               , army = Nothing
-              , connections = [ 5, 12 ]
+              , connections = Set.fromList [ 5, 12 ]
               }
             , { -- 8
                 position = { left = 102, top = 349 }
               , army = Nothing
-              , connections = [ 3, 9, 10 ]
+              , connections = Set.fromList [ 3, 9, 10 ]
               }
             , { -- 9
                 position = { left = 175, top = 377 }
               , army = Nothing
-              , connections = [ 8 ]
+              , connections = Set.fromList [ 8 ]
               }
             , { -- 10
                 position = { left = 346, top = 373 }
               , army = Nothing
-              , connections = [ 4, 8, 13 ]
+              , connections = Set.fromList [ 4, 8, 13 ]
               }
             , { -- 11
                 position = { left = 451, top = 203 }
@@ -189,7 +190,7 @@ model =
                         { side = Confederate
                         , units = [ infantry ]
                         }
-              , connections = [ 2, 5, 12, 13 ]
+              , connections = Set.fromList [ 2, 5, 12, 13 ]
               }
             , { -- 12
                 position = { left = 578, top = 242 }
@@ -198,7 +199,7 @@ model =
                         { side = Confederate
                         , units = [ infantry ]
                         }
-              , connections = [ 7, 11, 13, 14, 15 ]
+              , connections = Set.fromList [ 7, 11, 13, 14, 15 ]
               }
             , { -- 13
                 position = { left = 456, top = 353 }
@@ -207,7 +208,7 @@ model =
                         { side = Confederate
                         , units = [ infantry ]
                         }
-              , connections = [ 4, 10, 11, 12, 14, 15 ]
+              , connections = Set.fromList [ 4, 10, 11, 12, 14, 15 ]
               }
             , { -- 14
                 position = { left = 532, top = 337 }
@@ -222,7 +223,7 @@ model =
                             , leader
                             ]
                         }
-              , connections = [ 12, 13, 15 ]
+              , connections = Set.fromList [ 12, 13, 15 ]
               }
             , { -- 15
                 position = { left = 609, top = 392 }
@@ -231,7 +232,7 @@ model =
                         { side = Confederate
                         , units = [ infantry ]
                         }
-              , connections = [ 12, 13, 14 ]
+              , connections = Set.fromList [ 12, 13, 14 ]
               }
             ]
     , turn = Confederate

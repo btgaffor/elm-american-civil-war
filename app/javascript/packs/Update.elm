@@ -1,11 +1,11 @@
 module Update exposing (..)
 
 import Array
+import Set
 import Maybe exposing (andThen)
 import Window exposing (Size)
 import Task
 import Model exposing (..)
-import Utils exposing (listContains)
 import Chain exposing (Chain(..))
 
 
@@ -58,7 +58,7 @@ update action model =
                             if selectedRegionIndex == clickedIndex then
                                 -- cancel the splitting and put both armies back
                                 deselectRegion selectedRegionIndex (joinArmies oldArmy newArmy) model
-                            else if (listContains region.connections clickedIndex) then
+                            else if (Set.member clickedIndex region.connections) then
                                 -- put the old army back and move the new army
                                 model
                                     |> deselectRegion selectedRegionIndex oldArmy
@@ -79,7 +79,7 @@ update action model =
                                 setError model "Selected region does not exist, resetting state." ! []
 
                             Just selectedRegion ->
-                                if (listContains selectedRegion.connections clickedIndex) then
+                                if (Set.member clickedIndex selectedRegion.connections) then
                                     moveArmy army selectedRegionIndex clickedIndex model
                                 else
                                     model ! []

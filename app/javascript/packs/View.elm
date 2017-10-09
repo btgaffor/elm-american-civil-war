@@ -4,10 +4,10 @@ import Html exposing (Html, h1, h3, h5, div, text, img, button)
 import Html.Attributes exposing (id, class, style, src)
 import Html.Events exposing (onClick)
 import Array
+import Set
 import Maybe exposing (andThen)
 import Model exposing (..)
 import Update exposing (..)
-import Utils exposing (..)
 
 
 view : Model -> Html Action
@@ -70,7 +70,7 @@ renderRegion selectedRegion index region =
                 Just selectedRegion ->
                     if selectedRegion == index then
                         "green"
-                    else if (listContains region.connections selectedRegion) then
+                    else if (Set.member selectedRegion region.connections) then
                         "yellow"
                     else
                         "inherit"
