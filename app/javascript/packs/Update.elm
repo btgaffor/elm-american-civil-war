@@ -132,18 +132,13 @@ update action model =
             let
                 -- reset the movement points of all units
                 regions =
-                    Array.map
-                        (\region ->
-                            case region.army of
-                                Nothing ->
-                                    region
-
-                                Just army ->
-                                    { region
-                                        | army = Just { army | units = List.map resetMoves army.units }
-                                    }
-                        )
-                        model.regions
+                    model.regions
+                        |> Array.map
+                            (\region ->
+                                { region
+                                    | army = region.army |> Maybe.map (\army -> { army | units = List.map resetMoves army.units })
+                                }
+                            )
             in
                 case model.turn of
                     Union ->
@@ -167,9 +162,7 @@ selectRegion model clickedIndex =
                 Just army ->
                     if army.side == model.turn then
                         { model
-                            | regions =
-                                model.regions
-                                    |> Array.set clickedIndex { clickedRegion | army = Nothing }
+                            | regions = model.regions |> Array.set clickedIndex { clickedRegion | army = Nothing }
                             , currentState = MovingArmy clickedIndex army
                         }
                             ! []
@@ -209,6 +202,7 @@ addUnit model addUnitAction =
 
 moveArmy : Army -> Int -> Int -> Model -> ( Model, Cmd Action )
 moveArmy movingArmy oldIndex newIndex model =
+    -- check for destination region
     (case (Array.get newIndex model.regions) of
         Nothing ->
             Stop (setError model "Destination region does not exist. Resetting state.")
@@ -217,6 +211,7 @@ moveArmy movingArmy oldIndex newIndex model =
             Continue newRegion
     )
         |> Chain.andThen
+            -- check for starting region
             (\newRegion ->
                 case (Array.get oldIndex model.regions) of
                     Nothing ->
@@ -226,6 +221,7 @@ moveArmy movingArmy oldIndex newIndex model =
                         Continue ( newRegion, oldRegion )
             )
         |> Chain.andThen
+            -- make sure army has enough move points
             (\( newRegion, oldRegion ) ->
                 if List.any (\unit -> unit.moves < 1) movingArmy.units then
                     Stop { model | error = Just "At least one unit in the army has no more movement points. Consider splitting the army." }
@@ -233,7 +229,7 @@ moveArmy movingArmy oldIndex newIndex model =
                     let
                         -- subtract one from the movement of all units moving
                         movedArmy =
-                            { movingArmy | units = (List.map (\unit -> { unit | moves = unit.moves - 1 }) movingArmy.units) }
+                            { movingArmy | units = movingArmy.units |> List.map (\unit -> { unit | moves = unit.moves - 1 }) }
                     in
                         Continue ( newRegion, oldRegion, movedArmy )
             )
@@ -241,15 +237,20 @@ moveArmy movingArmy oldIndex newIndex model =
             (\( newRegion, oldRegion, movedArmy ) ->
                 case newRegion.army of
                     Nothing ->
-                        Stop { model | currentState = MovingArmy newIndex movedArmy }
+                        Stop
+                            ({ model
+                                | currentState = Idle
+                                , regions = model.regions |> Array.set newIndex { newRegion | army = Just movedArmy }
+                             }
+                            )
 
                     Just newArmy ->
                         if newArmy.side == movedArmy.side then
                             -- join the armies
                             Stop
                                 ({ model
-                                    | currentState = MovingArmy newIndex (joinArmies movedArmy newArmy)
-                                    , regions = model.regions |> Array.set newIndex { newRegion | army = Nothing }
+                                    | currentState = Idle
+                                    , regions = model.regions |> Array.set newIndex { newRegion | army = Just (joinArmies movedArmy newArmy) }
                                  }
                                 )
                         else
