@@ -31,8 +31,8 @@ errorModal model =
                 [ div
                     [ class "modal-backdrop"
                     , style
-                        [ ( "width", (model.windowSize.width |> toString) ++ "px" )
-                        , ( "height", (model.windowSize.height |> toString) ++ "px" )
+                        [ ( "width", (model.browser.windowSize.width |> toString) ++ "px" )
+                        , ( "height", (model.browser.windowSize.height |> toString) ++ "px" )
                         ]
                     ]
                     []
@@ -46,8 +46,8 @@ errorModal model =
                             modalHeight =
                                 70
                          in
-                            [ ( "left", ((model.windowSize.width // 2) - (modalWidth // 2) |> toString) ++ "px" )
-                            , ( "top", ((model.windowSize.height // 2) - (modalHeight // 2) |> toString) ++ "px" )
+                            [ ( "left", ((model.browser.windowSize.width // 2) - (modalWidth // 2) |> toString) ++ "px" )
+                            , ( "top", ((model.browser.windowSize.height // 2) - (modalHeight // 2) |> toString) ++ "px" )
                             , ( "width", (modalWidth |> toString) ++ "px" )
                             , ( "height", (modalHeight |> toString) ++ "px" )
                             ]

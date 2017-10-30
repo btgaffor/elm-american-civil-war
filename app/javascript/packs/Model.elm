@@ -31,11 +31,16 @@ type UnitType
     | Leader
 
 
-type alias Model =
-    { error : Maybe String
-    , mousex : Int
+type alias Browser =
+    { mousex : Int
     , mousey : Int
     , windowSize : Size
+    }
+
+
+type alias Model =
+    { error : Maybe String
+    , browser : Browser
     , regions : Array.Array Region
     , turn : Side
     , currentState : CurrentState
@@ -97,9 +102,11 @@ leader =
 model : Model
 model =
     { error = Nothing
-    , mousex = 0
-    , mousey = 0
-    , windowSize = { width = 0, height = 0 }
+    , browser =
+        { mousex = 0
+        , mousey = 0
+        , windowSize = { width = 0, height = 0 }
+        }
     , regions =
         Array.fromList
             [ { -- 0

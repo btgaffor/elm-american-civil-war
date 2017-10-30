@@ -37,10 +37,18 @@ update action model =
     case action of
         -- system related things
         MouseMove left top ->
-            { model | mousex = left, mousey = top } ! []
+            let
+                browser =
+                    model.browser
+            in
+                { model | browser = { browser | mousex = left, mousey = top } } ! []
 
         WindowResize size ->
-            { model | windowSize = size } ! []
+            let
+                browser =
+                    model.browser
+            in
+                { model | browser = { browser | windowSize = size } } ! []
 
         -- error dialog
         ClearError ->
