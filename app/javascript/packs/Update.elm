@@ -7,6 +7,7 @@ import Window exposing (Size)
 import Task
 import Model exposing (..)
 import Chain exposing (Chain(..))
+import List.Extra
 
 
 type Action
@@ -60,9 +61,6 @@ update action model =
                 Idle ->
                     selectRegion model clickedIndex
 
-                AddingUnit addingUnitState ->
-                    model ! []
-
                 MovingArmy selectedRegionIndex army ->
                     if selectedRegionIndex == clickedIndex then
                         deselectRegion selectedRegionIndex army model
@@ -95,6 +93,9 @@ update action model =
                             else
                                 model ! []
 
+                AddingUnit addingUnitState ->
+                    model ! []
+
         -- army splits
         SplitArmy ->
             case model.currentState of
@@ -112,7 +113,7 @@ update action model =
                 SplittingArmy selectedRegionIndex oldArmy newArmy ->
                     let
                         modifiedOldArmy =
-                            { oldArmy | units = List.filter ((/=) movingUnit) oldArmy.units }
+                            { oldArmy | units = List.Extra.remove movingUnit oldArmy.units }
 
                         modifiedNewArmy =
                             { newArmy | units = movingUnit :: newArmy.units }
@@ -130,7 +131,7 @@ update action model =
                             { oldArmy | units = movingUnit :: oldArmy.units }
 
                         modifiedNewArmy =
-                            { newArmy | units = List.filter ((/=) movingUnit) newArmy.units }
+                            { newArmy | units = List.Extra.remove movingUnit newArmy.units }
                     in
                         { model | currentState = SplittingArmy selectedRegionIndex modifiedOldArmy modifiedNewArmy } ! []
 
