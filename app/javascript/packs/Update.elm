@@ -35,15 +35,18 @@ type AddUnitAction
 update : Action -> Model -> ( Model, Cmd Action )
 update action model =
     case action of
+        -- system related things
         MouseMove left top ->
             { model | mousex = left, mousey = top } ! []
 
         WindowResize size ->
             { model | windowSize = size } ! []
 
+        -- error dialog
         ClearError ->
             { model | error = Nothing } ! []
 
+        -- moving armies around the board
         ClickRegion clickedIndex ->
             case model.currentState of
                 Idle ->
@@ -84,6 +87,7 @@ update action model =
                             else
                                 model ! []
 
+        -- army splits
         SplitArmy ->
             case model.currentState of
                 MovingArmy selectedRegionIndex army ->
@@ -125,9 +129,11 @@ update action model =
                 _ ->
                     model ! []
 
+        -- putting new units on the board
         AddUnit addUnitAction ->
             addUnit model addUnitAction
 
+        -- game logic
         EndTurn ->
             let
                 -- reset the movement points of all units
