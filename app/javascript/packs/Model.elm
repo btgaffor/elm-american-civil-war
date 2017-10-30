@@ -41,9 +41,9 @@ type alias Browser =
 type alias Model =
     { error : Maybe String
     , browser : Browser
-    , regions : Array.Array Region
     , turn : Side
     , currentState : CurrentState
+    , regions : Array.Array Region
     }
 
 
