@@ -6,7 +6,6 @@ import Maybe exposing (andThen)
 import Window exposing (Size)
 import Task
 import Model exposing (..)
-import Chain exposing (Chain(..))
 import List.Extra
 
 
@@ -52,7 +51,7 @@ update action model =
         ClickRegion clickedIndex ->
             case model.currentState of
                 Idle ->
-                    selectRegion model clickedIndex
+                    selectRegion model clickedIndex |> noCmd
 
                 MovingArmy selectedRegionIndex army ->
                     if selectedRegionIndex == clickedIndex then
@@ -87,9 +86,11 @@ update action model =
                                 model |> noCmd
 
                 AddingUnit addingUnitState ->
+                    -- TODO
                     model |> noCmd
 
                 Combat _ ->
+                    -- TODO
                     model |> noCmd
 
         -- army splits
@@ -162,26 +163,20 @@ update action model =
             { model | currentState = Idle } |> noCmd
 
 
-selectRegion : Model -> Int -> ( Model, Cmd Action )
+selectRegion : Model -> Int -> Model
 selectRegion model clickedIndex =
-    case Array.get clickedIndex model.regions of
+    case regionWithArmy clickedIndex model.regions of
+        Just ( clickedRegion, army ) ->
+            if army.side == model.turn then
+                { model
+                    | regions = model.regions |> Array.set clickedIndex { clickedRegion | army = Nothing }
+                    , currentState = MovingArmy clickedIndex army
+                }
+            else
+                model
+
         Nothing ->
-            model |> noCmd
-
-        Just clickedRegion ->
-            case clickedRegion.army of
-                Nothing ->
-                    model |> noCmd
-
-                Just army ->
-                    if army.side == model.turn then
-                        { model
-                            | regions = model.regions |> Array.set clickedIndex { clickedRegion | army = Nothing }
-                            , currentState = MovingArmy clickedIndex army
-                        }
-                            |> noCmd
-                    else
-                        model |> noCmd
+            model
 
 
 deselectRegion : Int -> Army -> Model -> ( Model, Cmd Action )
@@ -219,40 +214,40 @@ moveArmy movingArmy oldIndex newIndex model =
     -- check for destination region
     (case (Array.get newIndex model.regions) of
         Nothing ->
-            Stop (setError model "Destination region does not exist. Resetting state.")
+            Err (setError model "Destination region does not exist. Resetting state.")
 
         Just newRegion ->
-            Continue newRegion
+            Ok newRegion
     )
-        |> Chain.andThen
+        |> Result.andThen
             -- check for starting region
             (\newRegion ->
                 case (Array.get oldIndex model.regions) of
                     Nothing ->
-                        Stop (setError model "Source region does not exist. Resetting state.")
+                        Err (setError model "Source region does not exist. Resetting state.")
 
                     Just oldRegion ->
-                        Continue ( newRegion, oldRegion )
+                        Ok ( newRegion, oldRegion )
             )
-        |> Chain.andThen
+        |> Result.andThen
             -- make sure army has enough move points
             (\( newRegion, oldRegion ) ->
                 if List.any (\unit -> unit.moves < 1) movingArmy.units then
-                    Stop { model | error = Just "At least one unit in the army has no more movement points. Consider splitting the army." }
+                    Err { model | error = Just "At least one unit in the army has no more movement points. Consider splitting the army." }
                 else
                     let
                         -- subtract one from the movement of all units moving
                         movedArmy =
                             { movingArmy | units = movingArmy.units |> List.map (\unit -> { unit | moves = unit.moves - 1 }) }
                     in
-                        Continue ( newRegion, oldRegion, movedArmy )
+                        Ok ( newRegion, oldRegion, movedArmy )
             )
-        |> Chain.andThen
+        |> Result.andThen
             (\( newRegion, oldRegion, movedArmy ) ->
                 case newRegion.army of
                     -- move the army into the empty region
                     Nothing ->
-                        Stop
+                        Ok
                             ({ model
                                 | currentState = Idle
                                 , regions = model.regions |> Array.set newIndex { newRegion | army = Just movedArmy }
@@ -263,7 +258,7 @@ moveArmy movingArmy oldIndex newIndex model =
                     Just newArmy ->
                         if newArmy.side == movedArmy.side then
                             -- join the armies
-                            Stop
+                            Ok
                                 { model
                                     | currentState = Idle
                                     , regions = model.regions |> Array.set newIndex { newRegion | army = Just (joinArmies movedArmy newArmy) }
@@ -273,13 +268,13 @@ moveArmy movingArmy oldIndex newIndex model =
                                 combatBoard =
                                     model.combatBoard
                             in
-                                Stop
+                                Ok
                                     { model
                                         | combatBoard = Just (majorBoard model.turn)
                                         , currentState = Combat { attackingArmy = movedArmy, defendingArmy = newArmy }
                                     }
             )
-        |> (\chainModel -> Chain.flatten chainModel |> noCmd)
+        |> (\resultModel -> flattenResult resultModel |> noCmd)
 
 
 joinArmies : Army -> Army -> Army
@@ -328,6 +323,30 @@ noCmd model =
     ( model, Cmd.none )
 
 
+{-| nested update for browser
+-}
 updateBrowser : (Browser -> Browser) -> Model -> Model
 updateBrowser fn model =
     { model | browser = fn model.browser }
+
+
+{-| returns Just (region, army) if the region exists and has an army
+-}
+regionWithArmy : Int -> Array.Array Region -> Maybe ( Region, Army )
+regionWithArmy clickedIndex regions =
+    Array.get clickedIndex regions
+        |> Maybe.andThen
+            (\clickedRegion ->
+                clickedRegion.army
+                    |> Maybe.map (\army -> ( clickedRegion, army ))
+            )
+
+
+flattenResult : Result value value -> value
+flattenResult result =
+    case result of
+        Ok value ->
+            value
+
+        Err value ->
+            value
