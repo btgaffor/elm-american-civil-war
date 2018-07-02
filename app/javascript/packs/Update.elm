@@ -20,6 +20,7 @@ type Action
     | RemoveUnitFromSplit Unit
     | AddUnit AddUnitAction
     | EndTurn
+    | Reset
 
 
 type AddUnitAction
@@ -38,22 +39,14 @@ update action model =
     case action of
         -- system related things
         MouseMove left top ->
-            let
-                browser =
-                    model.browser
-            in
-                { model | browser = { browser | mousex = left, mousey = top } } ! []
+            model |> updateBrowser (\b -> { b | mousex = left, mousey = top }) |> noCmd
 
         WindowResize size ->
-            let
-                browser =
-                    model.browser
-            in
-                { model | browser = { browser | windowSize = size } } ! []
+            model |> updateBrowser (\b -> { b | windowSize = size }) |> noCmd
 
         -- error dialog
         ClearError ->
-            { model | error = Nothing } ! []
+            { model | error = Nothing } |> noCmd
 
         -- moving armies around the board
         ClickRegion clickedIndex ->
@@ -67,18 +60,18 @@ update action model =
                     else
                         case (Array.get selectedRegionIndex model.regions) of
                             Nothing ->
-                                setError model "Selected region does not exist, resetting state." ! []
+                                setError model "Selected region does not exist, resetting state." |> noCmd
 
                             Just selectedRegion ->
                                 if (Set.member clickedIndex selectedRegion.connections) then
                                     moveArmy army selectedRegionIndex clickedIndex model
                                 else
-                                    model ! []
+                                    model |> noCmd
 
                 SplittingArmy selectedRegionIndex oldArmy newArmy ->
                     case (Array.get selectedRegionIndex model.regions) of
                         Nothing ->
-                            setError model "Selected region does not exist, cannot return armies." ! []
+                            setError model "Selected region does not exist, cannot return armies." |> noCmd
 
                         Just region ->
                             if selectedRegionIndex == clickedIndex then
@@ -91,10 +84,13 @@ update action model =
                                     |> Tuple.first
                                     |> moveArmy newArmy selectedRegionIndex clickedIndex
                             else
-                                model ! []
+                                model |> noCmd
 
                 AddingUnit addingUnitState ->
-                    model ! []
+                    model |> noCmd
+
+                Combat _ ->
+                    model |> noCmd
 
         -- army splits
         SplitArmy ->
@@ -103,10 +99,10 @@ update action model =
                     { model
                         | currentState = (SplittingArmy selectedRegionIndex army { side = model.turn, units = [] })
                     }
-                        ! []
+                        |> noCmd
 
                 _ ->
-                    model ! []
+                    model |> noCmd
 
         AddUnitToSplit movingUnit ->
             case model.currentState of
@@ -118,10 +114,10 @@ update action model =
                         modifiedNewArmy =
                             { newArmy | units = movingUnit :: newArmy.units }
                     in
-                        { model | currentState = SplittingArmy selectedRegionIndex modifiedOldArmy modifiedNewArmy } ! []
+                        { model | currentState = SplittingArmy selectedRegionIndex modifiedOldArmy modifiedNewArmy } |> noCmd
 
                 _ ->
-                    model ! []
+                    model |> noCmd
 
         RemoveUnitFromSplit movingUnit ->
             case model.currentState of
@@ -133,10 +129,10 @@ update action model =
                         modifiedNewArmy =
                             { newArmy | units = List.Extra.remove movingUnit newArmy.units }
                     in
-                        { model | currentState = SplittingArmy selectedRegionIndex modifiedOldArmy modifiedNewArmy } ! []
+                        { model | currentState = SplittingArmy selectedRegionIndex modifiedOldArmy modifiedNewArmy } |> noCmd
 
                 _ ->
-                    model ! []
+                    model |> noCmd
 
         -- putting new units on the board
         AddUnit addUnitAction ->
@@ -157,22 +153,25 @@ update action model =
             in
                 case model.turn of
                     Union ->
-                        { model | turn = Confederate, regions = regions } ! []
+                        { model | turn = Confederate, regions = regions } |> noCmd
 
                     Confederate ->
-                        { model | turn = Union, regions = regions } ! []
+                        { model | turn = Union, regions = regions } |> noCmd
+
+        Reset ->
+            { model | currentState = Idle } |> noCmd
 
 
 selectRegion : Model -> Int -> ( Model, Cmd Action )
 selectRegion model clickedIndex =
     case Array.get clickedIndex model.regions of
         Nothing ->
-            model ! []
+            model |> noCmd
 
         Just clickedRegion ->
             case clickedRegion.army of
                 Nothing ->
-                    model ! []
+                    model |> noCmd
 
                 Just army ->
                     if army.side == model.turn then
@@ -180,39 +179,39 @@ selectRegion model clickedIndex =
                             | regions = model.regions |> Array.set clickedIndex { clickedRegion | army = Nothing }
                             , currentState = MovingArmy clickedIndex army
                         }
-                            ! []
+                            |> noCmd
                     else
-                        model ! []
+                        model |> noCmd
 
 
 deselectRegion : Int -> Army -> Model -> ( Model, Cmd Action )
 deselectRegion selectedRegionIndex army model =
     case Array.get selectedRegionIndex model.regions of
         Nothing ->
-            { model | currentState = Idle } ! []
+            { model | currentState = Idle } |> noCmd
 
         Just region ->
             { model
                 | currentState = Idle
                 , regions = model.regions |> Array.set selectedRegionIndex { region | army = Just army }
             }
-                ! []
+                |> noCmd
 
 
 addUnit : Model -> AddUnitAction -> ( Model, Cmd Action )
 addUnit model addUnitAction =
     case addUnitAction of
         Start ->
-            { model | currentState = AddingUnit ChoosingUnitSide } ! []
+            { model | currentState = AddingUnit ChoosingUnitSide } |> noCmd
 
         ChooseUnitSide side ->
-            { model | currentState = AddingUnit (ChoosingUnitType side) } ! []
+            { model | currentState = AddingUnit (ChoosingUnitType side) } |> noCmd
 
         ChooseUnitType side unitType ->
-            { model | currentState = AddingUnit (PlacingUnit side unitType) } ! []
+            { model | currentState = AddingUnit (PlacingUnit side unitType) } |> noCmd
 
         Finish ->
-            { model | currentState = Idle } ! []
+            { model | currentState = Idle } |> noCmd
 
 
 moveArmy : Army -> Int -> Int -> Model -> ( Model, Cmd Action )
@@ -251,6 +250,7 @@ moveArmy movingArmy oldIndex newIndex model =
         |> Chain.andThen
             (\( newRegion, oldRegion, movedArmy ) ->
                 case newRegion.army of
+                    -- move the army into the empty region
                     Nothing ->
                         Stop
                             ({ model
@@ -259,20 +259,27 @@ moveArmy movingArmy oldIndex newIndex model =
                              }
                             )
 
+                    -- either join the armies or battle!
                     Just newArmy ->
                         if newArmy.side == movedArmy.side then
                             -- join the armies
                             Stop
-                                ({ model
+                                { model
                                     | currentState = Idle
                                     , regions = model.regions |> Array.set newIndex { newRegion | army = Just (joinArmies movedArmy newArmy) }
-                                 }
-                                )
+                                }
                         else
-                            -- TODO
-                            Stop { model | error = Just "Battles not implemented yet." }
+                            let
+                                combatBoard =
+                                    model.combatBoard
+                            in
+                                Stop
+                                    { model
+                                        | combatBoard = Just (majorBoard model.turn)
+                                        , currentState = Combat { attackingArmy = movedArmy, defendingArmy = newArmy }
+                                    }
             )
-        |> (\chainModel -> Chain.flatten chainModel ! [])
+        |> (\chainModel -> Chain.flatten chainModel |> noCmd)
 
 
 joinArmies : Army -> Army -> Army
@@ -309,4 +316,18 @@ setError model message =
 
 init : ( Model, Cmd Action )
 init =
-    ( model, Task.perform WindowResize Window.size )
+    ( initialModel, Task.perform WindowResize Window.size )
+
+
+
+-- utility
+
+
+noCmd : Model -> ( Model, Cmd Action )
+noCmd model =
+    ( model, Cmd.none )
+
+
+updateBrowser : (Browser -> Browser) -> Model -> Model
+updateBrowser fn model =
+    { model | browser = fn model.browser }

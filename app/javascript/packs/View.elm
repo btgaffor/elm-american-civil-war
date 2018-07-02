@@ -13,26 +13,52 @@ import Update exposing (..)
 view : Model -> Html Action
 view model =
     div []
-        [ errorModal model
-        , img [ src "map_v2.png" ] []
-        , div [] (Array.toList (Array.indexedMap (renderRegion <| selectedRegion <| model) model.regions))
-        , sidebar model
-        ]
+        (List.concat
+            [ [ errorModal model.error model.browser ]
+            , (case model.currentState of
+                Combat _ ->
+                    [ errorModal model.error model.browser
+                    , img [ src "major_board_small.jpeg" ] []
+                    ]
+
+                _ ->
+                    [ img [ src "map_v2.png" ] []
+                    , div [] (Array.toList (Array.indexedMap (renderRegion <| selectedRegion <| model) model.regions))
+                    ]
+              )
+            , [ sidebar model ]
+            ]
+        )
 
 
-errorModal : Model -> Html Action
-errorModal model =
-    case model.error of
+
+-- (case model.combatBoard of
+--     Nothing ->
+--         [ errorModal model.error model.browser
+--         , img [ src "map_v2.png" ] []
+--         , div [] (Array.toList (Array.indexedMap (renderRegion <| selectedRegion <| model) model.regions))
+--         , sidebar model
+--         ]
+--     Just combatBoard ->
+--         [ errorModal model.error model.browser
+--         , img [ src combatBoard.imageSrc ] []
+--         ]
+-- )
+
+
+errorModal : Maybe String -> Browser -> Html Action
+errorModal maybeError browser =
+    case maybeError of
         Nothing ->
-            div [] []
+            text ""
 
         Just error ->
             div []
                 [ div
                     [ class "modal-backdrop"
                     , style
-                        [ ( "width", (model.browser.windowSize.width |> toString) ++ "px" )
-                        , ( "height", (model.browser.windowSize.height |> toString) ++ "px" )
+                        [ ( "width", (browser.windowSize.width |> toString) ++ "px" )
+                        , ( "height", (browser.windowSize.height |> toString) ++ "px" )
                         ]
                     ]
                     []
@@ -46,8 +72,8 @@ errorModal model =
                             modalHeight =
                                 70
                          in
-                            [ ( "left", ((model.browser.windowSize.width // 2) - (modalWidth // 2) |> toString) ++ "px" )
-                            , ( "top", ((model.browser.windowSize.height // 2) - (modalHeight // 2) |> toString) ++ "px" )
+                            [ ( "left", ((browser.windowSize.width // 2) - (modalWidth // 2) |> toString) ++ "px" )
+                            , ( "top", ((browser.windowSize.height // 2) - (modalHeight // 2) |> toString) ++ "px" )
                             , ( "width", (modalWidth |> toString) ++ "px" )
                             , ( "height", (modalHeight |> toString) ++ "px" )
                             ]
@@ -160,6 +186,9 @@ stateHeader model =
                         PlacingUnit side unitType ->
                             h3 [] [ text "Place Your Unit" ]
                     ]
+
+            Combat _ ->
+                h1 [] [ text "Combat!" ]
         ]
 
 
@@ -206,6 +235,9 @@ sidebarButtons model =
                         , div [] [ button [ onClick (AddUnit Finish) ] [ text "Done" ] ]
                         ]
 
+        Combat _ ->
+            div [] [ div [] [ button [ onClick Reset ] [ text "End Combat" ] ] ]
+
 
 armyInfo : Model -> Html Action
 armyInfo model =
@@ -235,6 +267,12 @@ armyInfo model =
                         basicUnitInfo
                         (List.sortWith compareUnits army.units)
                     )
+                ]
+
+        Combat combatState ->
+            div []
+                [ h5 [] [ text "Armies to Place" ]
+                , div [] [ text (armyToUnits combatState.attackingArmy) ]
                 ]
 
         _ ->
@@ -276,6 +314,30 @@ newUnitInfo unit =
         , text " "
         , text (unitMoves unit)
         ]
+
+
+armyToUnits : Army -> String
+armyToUnits army =
+    String.join " " (List.map unitToString (List.sortWith compareUnits army.units))
+
+
+unitToString : Unit -> String
+unitToString unit =
+    case unit.unitType of
+        Infantry ->
+            "I"
+
+        Cavalry ->
+            "C"
+
+        EliteCavalry ->
+            "E"
+
+        Artillary ->
+            "A"
+
+        Leader ->
+            "L"
 
 
 unitMoves : Unit -> String

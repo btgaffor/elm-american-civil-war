@@ -1,2 +1,2 @@
 web: ./bin/rails server
-webpack: ./bin/webpack-dev-server
+webpack: ./bin/webpack-dev-server --mode=development

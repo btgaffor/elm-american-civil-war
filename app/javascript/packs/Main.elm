@@ -11,11 +11,6 @@ import Update exposing (Action(WindowResize), init, update)
 import View exposing (view)
 
 
--- VIEW
--- ACTION
--- SUBSCRIPTIONS
-
-
 subscriptions : Model -> Sub Action
 subscriptions model =
     -- Mouse.moves (\position -> MouseMove position.x position.y)

@@ -5,17 +5,18 @@ import Set exposing (Set)
 import Window exposing (Size)
 
 
-type AddingUnitState
-    = ChoosingUnitSide
-    | ChoosingUnitType Side
-    | PlacingUnit Side UnitType
+-- external
 
 
-type CurrentState
-    = Idle
-    | MovingArmy Int Army
-    | SplittingArmy Int Army Army
-    | AddingUnit AddingUnitState
+type alias Browser =
+    { mousex : Int
+    , mousey : Int
+    , windowSize : Size
+    }
+
+
+
+-- general
 
 
 type Side
@@ -31,20 +32,46 @@ type UnitType
     | Leader
 
 
-type alias Browser =
-    { mousex : Int
-    , mousey : Int
-    , windowSize : Size
+type alias Army =
+    { side : Side
+    , units : List Unit
     }
 
 
-type alias Model =
-    { error : Maybe String
-    , browser : Browser
-    , turn : Side
-    , currentState : CurrentState
-    , regions : Array.Array Region
+type alias Unit =
+    { unitType : UnitType, moves : Int }
+
+
+
+-- game state
+
+
+type AddingUnitState
+    = ChoosingUnitSide
+    | ChoosingUnitType Side
+    | PlacingUnit Side UnitType
+
+
+type CurrentState
+    = Idle
+    | MovingArmy Int Army
+    | SplittingArmy Int Army Army
+    | AddingUnit AddingUnitState
+    | Combat CombatState
+
+
+type alias CombatState =
+    { attackingArmy : Army
+    , defendingArmy : Army
     }
+
+
+type CombatBoardState
+    = Deploying
+
+
+
+-- board
 
 
 type alias Region =
@@ -60,47 +87,56 @@ type alias Position =
     }
 
 
-type alias Army =
-    { side : Side
-    , units : List Unit
+type alias Board side state =
+    { imageSrc : String
+    , turn : side
+    , state : state
+    , regions : Array.Array Region
     }
 
 
-type alias Unit =
-    { unitType : UnitType, moves : Int }
+
+-- main
 
 
-infantry : Unit
-infantry =
-    { unitType = Infantry, moves = 1 }
-
-
-artillary : Unit
-artillary =
-    { unitType = Artillary, moves = 1 }
-
-
-cavalry : Unit
-cavalry =
-    { unitType = Cavalry, moves = 2 }
-
-
-eliteCavalry : Unit
-eliteCavalry =
-    { unitType = EliteCavalry, moves = 2 }
-
-
-leader : Unit
-leader =
-    { unitType = Leader, moves = 2 }
+type alias Model =
+    { error : Maybe String
+    , browser : Browser
+    , turn : Side
+    , currentState : CurrentState
+    , regions : Array.Array Region
+    , combatBoard : Maybe (Board Side CombatBoardState)
+    }
 
 
 
 -- INIT
 
 
-model : Model
-model =
+skirmishBoard : Side -> Board Side CombatBoardState
+skirmishBoard turn =
+    { imageSrc = "major_board_small.jpeg"
+    , turn = turn
+    , state = Deploying
+    , regions =
+        Array.fromList
+            []
+    }
+
+
+majorBoard : Side -> Board Side CombatBoardState
+majorBoard turn =
+    { imageSrc = "major_board_small.jpeg"
+    , turn = turn
+    , state = Deploying
+    , regions =
+        Array.fromList
+            []
+    }
+
+
+initialModel : Model
+initialModel =
     { error = Nothing
     , browser =
         { mousex = 0
@@ -244,6 +280,7 @@ model =
             ]
     , turn = Confederate
     , currentState = Idle
+    , combatBoard = Nothing
     }
 
 
@@ -262,3 +299,28 @@ selectedRegion model =
 
         _ ->
             Nothing
+
+
+infantry : Unit
+infantry =
+    { unitType = Infantry, moves = 1 }
+
+
+artillary : Unit
+artillary =
+    { unitType = Artillary, moves = 1 }
+
+
+cavalry : Unit
+cavalry =
+    { unitType = Cavalry, moves = 2 }
+
+
+eliteCavalry : Unit
+eliteCavalry =
+    { unitType = EliteCavalry, moves = 2 }
+
+
+leader : Unit
+leader =
+    { unitType = Leader, moves = 2 }
