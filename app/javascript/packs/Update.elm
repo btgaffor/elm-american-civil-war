@@ -212,69 +212,86 @@ addUnit model addUnitAction =
 moveArmy : Army -> Int -> Int -> Model -> ( Model, Cmd Action )
 moveArmy movingArmy oldIndex newIndex model =
     -- check for destination region
-    (case (Array.get newIndex model.regions) of
+    checkSourceExists model oldIndex
+        |> Result.andThen (checkDestinationExists model newIndex)
+        |> Result.andThen (checkMovePoints model movingArmy)
+        |> Result.andThen (tryMoveArmy model newIndex)
+        |> Result.andThen (joinOrBattle model newIndex)
+        |> flattenResult
+        |> noCmd
+
+
+checkSourceExists : Model -> Int -> Result Model ()
+checkSourceExists model oldIndex =
+    case (Array.get oldIndex model.regions) of
+        Nothing ->
+            Err (setError model "Source region does not exist. Resetting state.")
+
+        Just oldRegion ->
+            Ok ()
+
+
+checkDestinationExists : Model -> Int -> () -> Result Model Region
+checkDestinationExists model newIndex () =
+    case (Array.get newIndex model.regions) of
         Nothing ->
             Err (setError model "Destination region does not exist. Resetting state.")
 
         Just newRegion ->
             Ok newRegion
-    )
-        |> Result.andThen
-            -- check for starting region
-            (\newRegion ->
-                case (Array.get oldIndex model.regions) of
-                    Nothing ->
-                        Err (setError model "Source region does not exist. Resetting state.")
 
-                    Just oldRegion ->
-                        Ok ( newRegion, oldRegion )
-            )
-        |> Result.andThen
-            -- make sure army has enough move points
-            (\( newRegion, oldRegion ) ->
-                if List.any (\unit -> unit.moves < 1) movingArmy.units then
-                    Err { model | error = Just "At least one unit in the army has no more movement points. Consider splitting the army." }
-                else
-                    let
-                        -- subtract one from the movement of all units moving
-                        movedArmy =
-                            { movingArmy | units = movingArmy.units |> List.map (\unit -> { unit | moves = unit.moves - 1 }) }
-                    in
-                        Ok ( newRegion, oldRegion, movedArmy )
-            )
-        |> Result.andThen
-            (\( newRegion, oldRegion, movedArmy ) ->
-                case newRegion.army of
-                    -- move the army into the empty region
-                    Nothing ->
-                        Ok
-                            ({ model
-                                | currentState = Idle
-                                , regions = model.regions |> Array.set newIndex { newRegion | army = Just movedArmy }
-                             }
-                            )
 
-                    -- either join the armies or battle!
-                    Just newArmy ->
-                        if newArmy.side == movedArmy.side then
-                            -- join the armies
-                            Ok
-                                { model
-                                    | currentState = Idle
-                                    , regions = model.regions |> Array.set newIndex { newRegion | army = Just (joinArmies movedArmy newArmy) }
-                                }
-                        else
-                            let
-                                combatBoard =
-                                    model.combatBoard
-                            in
-                                Ok
-                                    { model
-                                        | combatBoard = Just (majorBoard model.turn)
-                                        , currentState = Combat { attackingArmy = movedArmy, defendingArmy = newArmy }
-                                    }
-            )
-        |> (\resultModel -> flattenResult resultModel |> noCmd)
+checkMovePoints : Model -> Army -> Region -> Result Model ( Region, Army )
+checkMovePoints model movingArmy newRegion =
+    case List.any (\unit -> unit.moves < 1) movingArmy.units of
+        True ->
+            Err { model | error = Just "At least one unit in the army has no more movement points. Consider splitting the army." }
+
+        False ->
+            let
+                -- subtract one from the movement of all units moving
+                movedArmy =
+                    { movingArmy | units = movingArmy.units |> List.map (\unit -> { unit | moves = unit.moves - 1 }) }
+            in
+                Ok ( newRegion, movedArmy )
+
+
+tryMoveArmy : Model -> Int -> ( Region, Army ) -> Result Model ( Region, Army, Army )
+tryMoveArmy model newIndex ( newRegion, movedArmy ) =
+    case newRegion.army of
+        -- move the army into the empty region
+        Nothing ->
+            Err
+                ({ model
+                    | currentState = Idle
+                    , regions = model.regions |> Array.set newIndex { newRegion | army = Just movedArmy }
+                 }
+                )
+
+        -- either join the armies or battle!
+        Just newArmy ->
+            Ok ( newRegion, movedArmy, newArmy )
+
+
+joinOrBattle : Model -> Int -> ( Region, Army, Army ) -> Result Model Model
+joinOrBattle model newIndex ( newRegion, movedArmy, newArmy ) =
+    if newArmy.side == movedArmy.side then
+        -- join the armies
+        Ok
+            { model
+                | currentState = Idle
+                , regions = model.regions |> Array.set newIndex { newRegion | army = Just (joinArmies movedArmy newArmy) }
+            }
+    else
+        let
+            combatBoard =
+                model.combatBoard
+        in
+            Ok
+                { model
+                    | combatBoard = Just (majorBoard model.turn)
+                    , currentState = Combat { attackingArmy = movedArmy, defendingArmy = newArmy }
+                }
 
 
 joinArmies : Army -> Army -> Army
