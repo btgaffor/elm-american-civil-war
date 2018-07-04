@@ -288,14 +288,14 @@ initialModel =
 -- UTILITIES
 
 
-selectedRegion : Model -> Maybe Int
+selectedRegion : Model -> Maybe ( Int, Region )
 selectedRegion model =
     case model.currentState of
-        MovingArmy ( selectedRegionIndex, _ ) _ ->
-            Just selectedRegionIndex
+        MovingArmy selectedRegion _ ->
+            Just selectedRegion
 
-        SplittingArmy ( selectedRegionIndex, _ ) _ _ ->
-            Just selectedRegionIndex
+        SplittingArmy selectedRegion _ _ ->
+            Just selectedRegion
 
         _ ->
             Nothing
