@@ -57,15 +57,7 @@ update action model =
                     if selectedRegionIndex == clickedIndex then
                         deselectRegion selectedRegionIndex army model
                     else
-                        case (Array.get selectedRegionIndex model.regions) of
-                            Nothing ->
-                                setError model "Selected region does not exist, resetting state." |> noCmd
-
-                            Just selectedRegion ->
-                                if (Set.member clickedIndex selectedRegion.connections) then
-                                    moveArmy army selectedRegionIndex clickedIndex model
-                                else
-                                    model |> noCmd
+                        moveArmy army selectedRegionIndex clickedIndex model
 
                 SplittingArmy selectedRegionIndex oldArmy newArmy ->
                     case (Array.get selectedRegionIndex model.regions) of
@@ -165,7 +157,7 @@ update action model =
 
 selectRegion : Model -> Int -> Model
 selectRegion model clickedIndex =
-    case regionWithArmy clickedIndex model.regions of
+    case regionArmy clickedIndex model.regions of
         Just ( clickedRegion, army ) ->
             if army.side == model.turn then
                 { model
@@ -211,24 +203,33 @@ addUnit model addUnitAction =
 
 moveArmy : Army -> Int -> Int -> Model -> ( Model, Cmd Action )
 moveArmy movingArmy oldIndex newIndex model =
-    -- check for destination region
     checkSourceExists model oldIndex
+        |> Result.andThen (checkDestinationIsConnected model newIndex)
         |> Result.andThen (checkDestinationExists model newIndex)
         |> Result.andThen (checkMovePoints model movingArmy)
-        |> Result.andThen (tryMoveArmy model newIndex)
+        |> Result.andThen (moveIfEmpty model newIndex)
         |> Result.andThen (joinOrBattle model newIndex)
         |> flattenResult
         |> noCmd
 
 
-checkSourceExists : Model -> Int -> Result Model ()
+checkSourceExists : Model -> Int -> Result Model Region
 checkSourceExists model oldIndex =
     case (Array.get oldIndex model.regions) of
         Nothing ->
             Err (setError model "Source region does not exist. Resetting state.")
 
         Just oldRegion ->
-            Ok ()
+            Ok oldRegion
+
+
+checkDestinationIsConnected : Model -> Int -> Region -> Result Model ()
+checkDestinationIsConnected model newIndex selectedRegion =
+    if (Set.member newIndex selectedRegion.connections) then
+        -- moveArmy army selectedRegionIndex clickedIndex model
+        Ok ()
+    else
+        Err model
 
 
 checkDestinationExists : Model -> Int -> () -> Result Model Region
@@ -256,8 +257,8 @@ checkMovePoints model movingArmy newRegion =
                 Ok ( newRegion, movedArmy )
 
 
-tryMoveArmy : Model -> Int -> ( Region, Army ) -> Result Model ( Region, Army, Army )
-tryMoveArmy model newIndex ( newRegion, movedArmy ) =
+moveIfEmpty : Model -> Int -> ( Region, Army ) -> Result Model ( Region, Army, Army )
+moveIfEmpty model newIndex ( newRegion, movedArmy ) =
     case newRegion.army of
         -- move the army into the empty region
         Nothing ->
@@ -283,15 +284,11 @@ joinOrBattle model newIndex ( newRegion, movedArmy, newArmy ) =
                 , regions = model.regions |> Array.set newIndex { newRegion | army = Just (joinArmies movedArmy newArmy) }
             }
     else
-        let
-            combatBoard =
-                model.combatBoard
-        in
-            Ok
-                { model
-                    | combatBoard = Just (majorBoard model.turn)
-                    , currentState = Combat { attackingArmy = movedArmy, defendingArmy = newArmy }
-                }
+        Ok
+            { model
+                | combatBoard = Just (majorBoard model.turn)
+                , currentState = Combat { attackingArmy = movedArmy, defendingArmy = newArmy }
+            }
 
 
 joinArmies : Army -> Army -> Army
@@ -349,8 +346,8 @@ updateBrowser fn model =
 
 {-| returns Just (region, army) if the region exists and has an army
 -}
-regionWithArmy : Int -> Array.Array Region -> Maybe ( Region, Army )
-regionWithArmy clickedIndex regions =
+regionArmy : Int -> Array.Array Region -> Maybe ( Region, Army )
+regionArmy clickedIndex regions =
     Array.get clickedIndex regions
         |> Maybe.andThen
             (\clickedRegion ->
