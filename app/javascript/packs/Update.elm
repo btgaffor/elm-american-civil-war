@@ -53,29 +53,24 @@ update action model =
                 Idle ->
                     selectRegion model clickedIndex |> noCmd
 
-                MovingArmy selectedRegionIndex army ->
+                MovingArmy ( selectedRegionIndex, selectedRegion ) army ->
                     if selectedRegionIndex == clickedIndex then
                         deselectRegion selectedRegionIndex army model
                     else
-                        moveArmy army selectedRegionIndex clickedIndex model
+                        moveArmy army selectedRegion clickedIndex model
 
-                SplittingArmy selectedRegionIndex oldArmy newArmy ->
-                    case (Array.get selectedRegionIndex model.regions) of
-                        Nothing ->
-                            setError model "Selected region does not exist, cannot return armies." |> noCmd
-
-                        Just region ->
-                            if selectedRegionIndex == clickedIndex then
-                                -- cancel the splitting and put both armies back
-                                deselectRegion selectedRegionIndex (joinArmies oldArmy newArmy) model
-                            else if (Set.member clickedIndex region.connections) then
-                                -- put the old army back and move the new army
-                                model
-                                    |> deselectRegion selectedRegionIndex oldArmy
-                                    |> Tuple.first
-                                    |> moveArmy newArmy selectedRegionIndex clickedIndex
-                            else
-                                model |> noCmd
+                SplittingArmy ( selectedRegionIndex, selectedRegion ) oldArmy newArmy ->
+                    if selectedRegionIndex == clickedIndex then
+                        -- cancel the splitting and put both armies back
+                        deselectRegion selectedRegionIndex (joinArmies oldArmy newArmy) model
+                    else if (Set.member clickedIndex selectedRegion.connections) then
+                        -- put the old army back and move the new army
+                        model
+                            |> deselectRegion selectedRegionIndex oldArmy
+                            |> Tuple.first
+                            |> moveArmy newArmy selectedRegion clickedIndex
+                    else
+                        model |> noCmd
 
                 AddingUnit addingUnitState ->
                     -- TODO
@@ -88,9 +83,9 @@ update action model =
         -- army splits
         SplitArmy ->
             case model.currentState of
-                MovingArmy selectedRegionIndex army ->
+                MovingArmy selectedRegion army ->
                     { model
-                        | currentState = (SplittingArmy selectedRegionIndex army { side = model.turn, units = [] })
+                        | currentState = (SplittingArmy selectedRegion army { side = model.turn, units = [] })
                     }
                         |> noCmd
 
@@ -99,7 +94,7 @@ update action model =
 
         AddUnitToSplit movingUnit ->
             case model.currentState of
-                SplittingArmy selectedRegionIndex oldArmy newArmy ->
+                SplittingArmy selectedRegion oldArmy newArmy ->
                     let
                         modifiedOldArmy =
                             { oldArmy | units = List.Extra.remove movingUnit oldArmy.units }
@@ -107,14 +102,14 @@ update action model =
                         modifiedNewArmy =
                             { newArmy | units = movingUnit :: newArmy.units }
                     in
-                        { model | currentState = SplittingArmy selectedRegionIndex modifiedOldArmy modifiedNewArmy } |> noCmd
+                        { model | currentState = SplittingArmy selectedRegion modifiedOldArmy modifiedNewArmy } |> noCmd
 
                 _ ->
                     model |> noCmd
 
         RemoveUnitFromSplit movingUnit ->
             case model.currentState of
-                SplittingArmy selectedRegionIndex oldArmy newArmy ->
+                SplittingArmy selectedRegion oldArmy newArmy ->
                     let
                         modifiedOldArmy =
                             { oldArmy | units = movingUnit :: oldArmy.units }
@@ -122,7 +117,7 @@ update action model =
                         modifiedNewArmy =
                             { newArmy | units = List.Extra.remove movingUnit newArmy.units }
                     in
-                        { model | currentState = SplittingArmy selectedRegionIndex modifiedOldArmy modifiedNewArmy } |> noCmd
+                        { model | currentState = SplittingArmy selectedRegion modifiedOldArmy modifiedNewArmy } |> noCmd
 
                 _ ->
                     model |> noCmd
@@ -162,7 +157,7 @@ selectRegion model clickedIndex =
             if army.side == model.turn then
                 { model
                     | regions = model.regions |> Array.set clickedIndex { clickedRegion | army = Nothing }
-                    , currentState = MovingArmy clickedIndex army
+                    , currentState = MovingArmy ( clickedIndex, clickedRegion ) army
                 }
             else
                 model
@@ -201,10 +196,9 @@ addUnit model addUnitAction =
             { model | currentState = Idle } |> noCmd
 
 
-moveArmy : Army -> Int -> Int -> Model -> ( Model, Cmd Action )
-moveArmy movingArmy oldIndex newIndex model =
-    checkSourceExists model oldIndex
-        |> Result.andThen (checkDestinationIsConnected model newIndex)
+moveArmy : Army -> Region -> Int -> Model -> ( Model, Cmd Action )
+moveArmy movingArmy oldRegion newIndex model =
+    checkDestinationIsConnected oldRegion newIndex model
         |> Result.andThen (checkDestinationExists model newIndex)
         |> Result.andThen (checkMovePoints model movingArmy)
         |> Result.andThen (moveIfEmpty model newIndex)
@@ -213,18 +207,8 @@ moveArmy movingArmy oldIndex newIndex model =
         |> noCmd
 
 
-checkSourceExists : Model -> Int -> Result Model Region
-checkSourceExists model oldIndex =
-    case (Array.get oldIndex model.regions) of
-        Nothing ->
-            Err (setError model "Source region does not exist. Resetting state.")
-
-        Just oldRegion ->
-            Ok oldRegion
-
-
-checkDestinationIsConnected : Model -> Int -> Region -> Result Model ()
-checkDestinationIsConnected model newIndex selectedRegion =
+checkDestinationIsConnected : Region -> Int -> Model -> Result Model ()
+checkDestinationIsConnected selectedRegion newIndex model =
     if (Set.member newIndex selectedRegion.connections) then
         -- moveArmy army selectedRegionIndex clickedIndex model
         Ok ()

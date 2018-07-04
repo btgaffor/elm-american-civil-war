@@ -54,8 +54,8 @@ type AddingUnitState
 
 type CurrentState
     = Idle
-    | MovingArmy Int Army
-    | SplittingArmy Int Army Army
+    | MovingArmy ( Int, Region ) Army
+    | SplittingArmy ( Int, Region ) Army Army
     | AddingUnit AddingUnitState
     | Combat CombatState
 
@@ -291,10 +291,10 @@ initialModel =
 selectedRegion : Model -> Maybe Int
 selectedRegion model =
     case model.currentState of
-        MovingArmy selectedRegionIndex _ ->
+        MovingArmy ( selectedRegionIndex, _ ) _ ->
             Just selectedRegionIndex
 
-        SplittingArmy selectedRegionIndex _ _ ->
+        SplittingArmy ( selectedRegionIndex, _ ) _ _ ->
             Just selectedRegionIndex
 
         _ ->

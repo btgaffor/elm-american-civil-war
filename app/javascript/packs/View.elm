@@ -167,10 +167,10 @@ stateHeader model =
             Idle ->
                 h1 [] [ text "Idle" ]
 
-            MovingArmy selectedRegionIndex army ->
+            MovingArmy _ _ ->
                 h1 [] [ text "Moving an Army" ]
 
-            SplittingArmy selectedRegionIndex oldArmy newArmy ->
+            SplittingArmy _ _ _ ->
                 h1 [] [ text "Splitting an Army" ]
 
             AddingUnit addingUnitState ->
@@ -201,7 +201,7 @@ sidebarButtons model =
                 , div [] [ button [ onClick (AddUnit Start) ] [ text "Add Unit" ] ]
                 ]
 
-        MovingArmy selectedRegionIndex army ->
+        MovingArmy _ army ->
             div []
                 [ if List.length army.units > 1 then
                     div [] [ button [ onClick (SplitArmy) ] [ text "Split Army" ] ]
@@ -209,7 +209,7 @@ sidebarButtons model =
                     text ""
                 ]
 
-        SplittingArmy selectedRegionIndex oldArmy newArmy ->
+        SplittingArmy _ _ _ ->
             text ""
 
         AddingUnit addingUnitState ->
@@ -242,7 +242,7 @@ sidebarButtons model =
 armyInfo : Model -> Html Action
 armyInfo model =
     case model.currentState of
-        SplittingArmy selectedRegionIndex oldArmy newArmy ->
+        SplittingArmy _ oldArmy newArmy ->
             div []
                 [ h5 [] [ text "Existing Army" ]
                 , div []
@@ -258,7 +258,7 @@ armyInfo model =
                     )
                 ]
 
-        MovingArmy selectedRegionIndex army ->
+        MovingArmy _ army ->
             div []
                 [ h5 []
                     [ text "Army Details" ]
