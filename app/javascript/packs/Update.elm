@@ -230,17 +230,17 @@ addUnit model addUnitAction =
 
 moveArmy : Army -> Int -> Int -> Model -> Model
 moveArmy movingArmy oldRegionIndex newRegionIndex model =
-    (verifyOldRegionExists model oldRegionIndex)
-        |> Result.andThen (verifyNewRegionConnected model newRegionIndex)
-        |> Result.andThen (verifyNewRegionExists model newRegionIndex)
+    (checkOldRegionExists model oldRegionIndex)
+        |> Result.andThen (checkNewRegionConnected model newRegionIndex)
+        |> Result.andThen (checkNewRegionExists model newRegionIndex)
         |> Result.andThen (checkMovePoints model movingArmy)
         |> Result.andThen (moveIfEmpty model newRegionIndex)
         |> Result.andThen (joinOrBattle model oldRegionIndex newRegionIndex)
         |> flattenResult
 
 
-verifyOldRegionExists : Model -> Int -> Result Model Region
-verifyOldRegionExists model oldRegionIndex =
+checkOldRegionExists : Model -> Int -> Result Model Region
+checkOldRegionExists model oldRegionIndex =
     case Array.get oldRegionIndex model.regions of
         Nothing ->
             Err <| setError model "selected region no longer exists - resetting state"
@@ -249,8 +249,8 @@ verifyOldRegionExists model oldRegionIndex =
             Ok oldRegion
 
 
-verifyNewRegionConnected : Model -> Int -> Region -> Result Model Region
-verifyNewRegionConnected model newRegionIndex oldRegion =
+checkNewRegionConnected : Model -> Int -> Region -> Result Model Region
+checkNewRegionConnected model newRegionIndex oldRegion =
     if connected oldRegion newRegionIndex then
         Ok oldRegion
     else
@@ -258,8 +258,8 @@ verifyNewRegionConnected model newRegionIndex oldRegion =
         Err model
 
 
-verifyNewRegionExists : Model -> Int -> Region -> Result Model ( Region, Region )
-verifyNewRegionExists model newRegionIndex oldRegion =
+checkNewRegionExists : Model -> Int -> Region -> Result Model ( Region, Region )
+checkNewRegionExists model newRegionIndex oldRegion =
     case Array.get newRegionIndex model.regions of
         Nothing ->
             Err <| setError model "clicked region no longer exists - resetting state"
