@@ -127,33 +127,29 @@ update action model =
             case model.currentState of
                 Combat { attackingArmy, attackingRegionIndex, defendingArmy, defendingRegionIndex } ->
                     -- refactor getting regions
-                    case Array.get attackingRegionIndex model.regions of
-                        Nothing ->
-                            model |> noCmd
+                    Maybe.map2
+                        (\attackingRegion defendingRegion ->
+                            let
+                                updatedAttackingArmy =
+                                    case attackingRegion.army of
+                                        Nothing ->
+                                            attackingArmy
 
-                        Just attackingRegion ->
-                            case Array.get defendingRegionIndex model.regions of
-                                Nothing ->
-                                    model |> noCmd
-
-                                Just defendingRegion ->
-                                    let
-                                        updatedAttackingArmy =
-                                            case attackingRegion.army of
-                                                Nothing ->
-                                                    attackingArmy
-
-                                                Just existingArmy ->
-                                                    (joinArmies attackingArmy existingArmy)
-                                    in
-                                        { model
-                                            | currentState = Idle
-                                            , regions =
-                                                model.regions
-                                                    |> Array.set defendingRegionIndex { defendingRegion | army = Just defendingArmy }
-                                                    |> Array.set attackingRegionIndex { attackingRegion | army = Just updatedAttackingArmy }
-                                        }
-                                            |> noCmd
+                                        Just existingArmy ->
+                                            (joinArmies attackingArmy existingArmy)
+                            in
+                                { model
+                                    | currentState = Idle
+                                    , regions =
+                                        model.regions
+                                            |> Array.set defendingRegionIndex { defendingRegion | army = Just defendingArmy }
+                                            |> Array.set attackingRegionIndex { attackingRegion | army = Just updatedAttackingArmy }
+                                }
+                        )
+                        (Array.get attackingRegionIndex model.regions)
+                        (Array.get defendingRegionIndex model.regions)
+                        |> Maybe.withDefault (setError model "attacking or defending region do not exist - resetting state")
+                        |> noCmd
 
                 _ ->
                     model |> noCmd
@@ -186,7 +182,7 @@ selectRegion : Model -> Int -> Model
 selectRegion model clickedIndex =
     case Array.get clickedIndex model.regions of
         Nothing ->
-            model
+            setError model "selected region no longer exists - resetting state"
 
         Just clickedRegion ->
             case clickedRegion.army of
@@ -207,7 +203,7 @@ deselectRegion : Int -> Army -> Model -> Model
 deselectRegion selectedRegionIndex army model =
     case Array.get selectedRegionIndex model.regions of
         Nothing ->
-            { model | currentState = Idle }
+            setError model "selected region no longer exists - resetting state"
 
         Just selectedRegion ->
             { model
@@ -247,7 +243,7 @@ verifyOldRegionExists : Model -> Int -> Result Model Region
 verifyOldRegionExists model oldRegionIndex =
     case Array.get oldRegionIndex model.regions of
         Nothing ->
-            Err model
+            Err <| setError model "selected region no longer exists - resetting state"
 
         Just oldRegion ->
             Ok oldRegion
@@ -258,6 +254,7 @@ verifyNewRegionConnected model newRegionIndex oldRegion =
     if connected oldRegion newRegionIndex then
         Ok oldRegion
     else
+        -- ignore clicks on regions that aren't connected
         Err model
 
 
@@ -265,7 +262,7 @@ verifyNewRegionExists : Model -> Int -> Region -> Result Model ( Region, Region 
 verifyNewRegionExists model newRegionIndex oldRegion =
     case Array.get newRegionIndex model.regions of
         Nothing ->
-            Err model
+            Err <| setError model "clicked region no longer exists - resetting state"
 
         Just newRegion ->
             Ok ( oldRegion, newRegion )
