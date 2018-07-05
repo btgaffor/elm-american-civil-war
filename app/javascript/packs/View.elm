@@ -236,7 +236,7 @@ sidebarButtons model =
                         ]
 
         Combat _ ->
-            div [] [ div [] [ button [ onClick Reset ] [ text "End Combat" ] ] ]
+            div [] [ div [] [ button [ onClick EndCombat ] [ text "End Combat" ] ] ]
 
 
 armyInfo : Model -> Html Action
