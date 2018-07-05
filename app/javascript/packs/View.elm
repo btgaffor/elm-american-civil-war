@@ -85,15 +85,15 @@ errorModal maybeError browser =
                 ]
 
 
-renderRegion : Maybe ( Int, Region ) -> Int -> Region -> Html Action
-renderRegion maybeSelectedRegion index region =
+renderRegion : Maybe Int -> Int -> Region -> Html Action
+renderRegion maybeSelectedRegionIndex index region =
     let
         backgroundColor =
-            case maybeSelectedRegion of
+            case maybeSelectedRegionIndex of
                 Nothing ->
                     "inherit"
 
-                Just ( selectedRegionIndex, selectedRegion ) ->
+                Just selectedRegionIndex ->
                     if selectedRegionIndex == index then
                         "green"
                     else if (Set.member selectedRegionIndex region.connections) then
@@ -108,7 +108,7 @@ renderRegion maybeSelectedRegion index region =
                 , ( "left", (toString region.position.left) ++ "px" )
                 , ( "background-color", backgroundColor )
                 ]
-            , onClick <| ClickRegion ( index, region )
+            , onClick <| ClickRegion index
             ]
             (army region.army)
 

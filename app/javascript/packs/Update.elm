@@ -1,7 +1,6 @@
 module Update exposing (..)
 
 import Array
-import Set
 import Maybe exposing (andThen)
 import Window exposing (Size)
 import Task
@@ -13,7 +12,7 @@ type Action
     = MouseMove Int Int
     | WindowResize Size
     | ClearError
-    | ClickRegion RegionInfo
+    | ClickRegion Int
     | SplitArmy
     | AddUnitToSplit Unit
     | RemoveUnitFromSplit Unit
@@ -49,35 +48,26 @@ update action model =
             { model | error = Nothing } |> noCmd
 
         -- moving armies around the board
-        ClickRegion ( clickedIndex, clickedRegion ) ->
+        ClickRegion clickedIndex ->
             case model.currentState of
                 Idle ->
-                    selectRegion model ( clickedIndex, clickedRegion ) |> noCmd
+                    selectRegion model clickedIndex |> noCmd
 
-                MovingArmy ( selectedRegionIndex, selectedRegion ) army ->
+                MovingArmy selectedRegionIndex army ->
                     if selectedRegionIndex == clickedIndex then
-                        deselectRegion ( selectedRegionIndex, selectedRegion ) army model |> Tuple.first |> noCmd
-                    else if not <| connected selectedRegion clickedIndex then
-                        model |> noCmd
+                        deselectRegion selectedRegionIndex army model |> noCmd
                     else
-                        moveArmy army ( selectedRegionIndex, selectedRegion ) ( clickedIndex, clickedRegion ) model |> noCmd
+                        moveArmy army selectedRegionIndex clickedIndex model |> noCmd
 
-                SplittingArmy ( selectedRegionIndex, selectedRegion ) oldArmy newArmy ->
+                SplittingArmy selectedRegionIndex oldArmy newArmy ->
                     if selectedRegionIndex == clickedIndex then
                         -- cancel the splitting and put both armies back
-                        deselectRegion ( selectedRegionIndex, selectedRegion ) (joinArmies oldArmy newArmy) model |> Tuple.first |> noCmd
-                    else if (Set.member clickedIndex selectedRegion.connections) then
-                        -- put the old army back and move the new army
-                        let
-                            ( updatedModel, updatedRegion ) =
-                                model |> deselectRegion ( selectedRegionIndex, selectedRegion ) oldArmy
-                        in
-                            -- make sure to pass the updated version of the old region so it's stored when doing combat
-                            updatedModel
-                                |> moveArmy newArmy ( selectedRegionIndex, updatedRegion ) ( clickedIndex, clickedRegion )
-                                |> noCmd
+                        deselectRegion selectedRegionIndex (joinArmies oldArmy newArmy) model |> noCmd
                     else
-                        model |> noCmd
+                        model
+                            |> deselectRegion selectedRegionIndex oldArmy
+                            |> moveArmy newArmy selectedRegionIndex clickedIndex
+                            |> noCmd
 
                 AddingUnit addingUnitState ->
                     -- TODO
@@ -135,30 +125,35 @@ update action model =
 
         EndCombat ->
             case model.currentState of
-                Combat { attackingArmy, attackingRegionInfo, defendingArmy, defendingRegionInfo } ->
-                    let
-                        ( attackingIndex, attackingRegion ) =
-                            attackingRegionInfo
+                Combat { attackingArmy, attackingRegionIndex, defendingArmy, defendingRegionIndex } ->
+                    -- refactor getting regions
+                    case Array.get attackingRegionIndex model.regions of
+                        Nothing ->
+                            model |> noCmd
 
-                        ( defendingIndex, defendingRegion ) =
-                            defendingRegionInfo
-
-                        updatedAttackingArmy =
-                            case attackingRegion.army of
+                        Just attackingRegion ->
+                            case Array.get defendingRegionIndex model.regions of
                                 Nothing ->
-                                    attackingArmy
+                                    model |> noCmd
 
-                                Just existingArmy ->
-                                    (joinArmies attackingArmy existingArmy)
-                    in
-                        { model
-                            | currentState = Idle
-                            , regions =
-                                model.regions
-                                    |> Array.set defendingIndex { defendingRegion | army = Just defendingArmy }
-                                    |> Array.set attackingIndex { attackingRegion | army = Just updatedAttackingArmy }
-                        }
-                            |> noCmd
+                                Just defendingRegion ->
+                                    let
+                                        updatedAttackingArmy =
+                                            case attackingRegion.army of
+                                                Nothing ->
+                                                    attackingArmy
+
+                                                Just existingArmy ->
+                                                    (joinArmies attackingArmy existingArmy)
+                                    in
+                                        { model
+                                            | currentState = Idle
+                                            , regions =
+                                                model.regions
+                                                    |> Array.set defendingRegionIndex { defendingRegion | army = Just defendingArmy }
+                                                    |> Array.set attackingRegionIndex { attackingRegion | army = Just updatedAttackingArmy }
+                                        }
+                                            |> noCmd
 
                 _ ->
                     model |> noCmd
@@ -187,34 +182,38 @@ update action model =
             { model | currentState = Idle } |> noCmd
 
 
-selectRegion : Model -> RegionInfo -> Model
-selectRegion model ( clickedIndex, clickedRegion ) =
-    case clickedRegion.army of
-        Just army ->
-            if army.side == model.turn then
-                { model
-                    | regions = model.regions |> Array.set clickedIndex { clickedRegion | army = Nothing }
-                    , currentState = MovingArmy ( clickedIndex, clickedRegion ) army
-                }
-            else
-                model
-
+selectRegion : Model -> Int -> Model
+selectRegion model clickedIndex =
+    case Array.get clickedIndex model.regions of
         Nothing ->
             model
 
+        Just clickedRegion ->
+            case clickedRegion.army of
+                Just army ->
+                    if army.side == model.turn then
+                        { model
+                            | regions = model.regions |> Array.set clickedIndex { clickedRegion | army = Nothing }
+                            , currentState = MovingArmy clickedIndex army
+                        }
+                    else
+                        model
 
-deselectRegion : RegionInfo -> Army -> Model -> ( Model, Region )
-deselectRegion ( selectedRegionIndex, selectedRegion ) army model =
-    let
-        updatedRegion =
-            { selectedRegion | army = Just army }
-    in
-        ( { model
-            | currentState = Idle
-            , regions = model.regions |> Array.set selectedRegionIndex updatedRegion
-          }
-        , updatedRegion
-        )
+                Nothing ->
+                    model
+
+
+deselectRegion : Int -> Army -> Model -> Model
+deselectRegion selectedRegionIndex army model =
+    case Array.get selectedRegionIndex model.regions of
+        Nothing ->
+            { model | currentState = Idle }
+
+        Just selectedRegion ->
+            { model
+                | currentState = Idle
+                , regions = model.regions |> Array.set selectedRegionIndex { selectedRegion | army = Just army }
+            }
 
 
 addUnit : Model -> AddUnitAction -> Model
@@ -233,16 +232,47 @@ addUnit model addUnitAction =
             { model | currentState = Idle }
 
 
-moveArmy : Army -> RegionInfo -> RegionInfo -> Model -> Model
-moveArmy movingArmy oldRegion ( newIndex, newRegion ) model =
-    checkMovePoints model movingArmy newRegion
-        |> Result.andThen (moveIfEmpty model newIndex)
-        |> Result.andThen (joinOrBattle model oldRegion newIndex)
+moveArmy : Army -> Int -> Int -> Model -> Model
+moveArmy movingArmy oldRegionIndex newRegionIndex model =
+    (verifyOldRegionExists model oldRegionIndex)
+        |> Result.andThen (verifyNewRegionConnected model newRegionIndex)
+        |> Result.andThen (verifyNewRegionExists model newRegionIndex)
+        |> Result.andThen (checkMovePoints model movingArmy)
+        |> Result.andThen (moveIfEmpty model newRegionIndex)
+        |> Result.andThen (joinOrBattle model oldRegionIndex newRegionIndex)
         |> flattenResult
 
 
-checkMovePoints : Model -> Army -> Region -> Result Model ( Region, Army )
-checkMovePoints model movingArmy newRegion =
+verifyOldRegionExists : Model -> Int -> Result Model Region
+verifyOldRegionExists model oldRegionIndex =
+    case Array.get oldRegionIndex model.regions of
+        Nothing ->
+            Err model
+
+        Just oldRegion ->
+            Ok oldRegion
+
+
+verifyNewRegionConnected : Model -> Int -> Region -> Result Model Region
+verifyNewRegionConnected model newRegionIndex oldRegion =
+    if connected oldRegion newRegionIndex then
+        Ok oldRegion
+    else
+        Err model
+
+
+verifyNewRegionExists : Model -> Int -> Region -> Result Model ( Region, Region )
+verifyNewRegionExists model newRegionIndex oldRegion =
+    case Array.get newRegionIndex model.regions of
+        Nothing ->
+            Err model
+
+        Just newRegion ->
+            Ok ( oldRegion, newRegion )
+
+
+checkMovePoints : Model -> Army -> ( Region, Region ) -> Result Model ( Region, Region, Army )
+checkMovePoints model movingArmy ( oldRegion, newRegion ) =
     if List.any (\unit -> unit.moves < 1) movingArmy.units then
         Err { model | error = Just "At least one unit in the army has no more movement points. Consider splitting the army." }
     else
@@ -251,14 +281,14 @@ checkMovePoints model movingArmy newRegion =
             movedArmy =
                 { movingArmy | units = movingArmy.units |> List.map (\unit -> { unit | moves = unit.moves - 1 }) }
         in
-            Ok ( newRegion, movedArmy )
+            Ok ( oldRegion, newRegion, movedArmy )
 
 
-moveIfEmpty : Model -> Int -> ( Region, Army ) -> Result Model ( Region, Army, Army )
-moveIfEmpty model newIndex ( newRegion, movedArmy ) =
+moveIfEmpty : Model -> Int -> ( Region, Region, Army ) -> Result Model ( Region, Region, Army, Army )
+moveIfEmpty model newIndex ( oldRegion, newRegion, movedArmy ) =
     case newRegion.army of
         Nothing ->
-            -- move the army into the empty region
+            -- move the army into the empty region and stop
             Err
                 ({ model
                     | currentState = Idle
@@ -267,17 +297,17 @@ moveIfEmpty model newIndex ( newRegion, movedArmy ) =
                 )
 
         Just newArmy ->
-            Ok ( newRegion, movedArmy, newArmy )
+            Ok ( oldRegion, newRegion, movedArmy, newArmy )
 
 
-joinOrBattle : Model -> RegionInfo -> Int -> ( Region, Army, Army ) -> Result Model Model
-joinOrBattle model oldRegion newIndex ( newRegion, movedArmy, newArmy ) =
+joinOrBattle : Model -> Int -> Int -> ( Region, Region, Army, Army ) -> Result Model Model
+joinOrBattle model oldRegionIndex newRegionIndex ( oldRegion, newRegion, movedArmy, newArmy ) =
     if newArmy.side == movedArmy.side then
         -- join the armies
         Ok
             { model
                 | currentState = Idle
-                , regions = model.regions |> Array.set newIndex { newRegion | army = Just (joinArmies movedArmy newArmy) }
+                , regions = model.regions |> Array.set newRegionIndex { newRegion | army = Just (joinArmies movedArmy newArmy) }
             }
     else
         -- start a battle
@@ -287,9 +317,9 @@ joinOrBattle model oldRegion newIndex ( newRegion, movedArmy, newArmy ) =
                 , currentState =
                     Combat
                         { attackingArmy = movedArmy
-                        , attackingRegionInfo = oldRegion
+                        , attackingRegionIndex = oldRegionIndex
                         , defendingArmy = newArmy
-                        , defendingRegionInfo = ( newIndex, newRegion )
+                        , defendingRegionIndex = newRegionIndex
                         }
             }
 

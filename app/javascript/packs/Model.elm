@@ -54,8 +54,8 @@ type AddingUnitState
 
 type CurrentState
     = Idle
-    | MovingArmy RegionInfo Army
-    | SplittingArmy RegionInfo Army Army
+    | MovingArmy Int Army
+    | SplittingArmy Int Army Army
     | AddingUnit AddingUnitState
     | Combat CombatState
 
@@ -68,15 +68,11 @@ type CombatBoardState
 -- misc
 
 
-type alias RegionInfo =
-    ( Int, Region )
-
-
 type alias CombatState =
     { attackingArmy : Army
-    , attackingRegionInfo : RegionInfo
+    , attackingRegionIndex : Int
     , defendingArmy : Army
-    , defendingRegionInfo : RegionInfo
+    , defendingRegionIndex : Int
     }
 
 
@@ -298,14 +294,14 @@ initialModel =
 -- UTILITIES
 
 
-selectedRegion : Model -> Maybe RegionInfo
+selectedRegion : Model -> Maybe Int
 selectedRegion model =
     case model.currentState of
-        MovingArmy selectedRegion _ ->
-            Just selectedRegion
+        MovingArmy selectedRegionIndex _ ->
+            Just selectedRegionIndex
 
-        SplittingArmy selectedRegion _ _ ->
-            Just selectedRegion
+        SplittingArmy selectedRegionIndex _ _ ->
+            Just selectedRegionIndex
 
         _ ->
             Nothing
