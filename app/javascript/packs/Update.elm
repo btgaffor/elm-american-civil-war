@@ -228,6 +228,10 @@ addUnit model addUnitAction =
             { model | currentState = Idle }
 
 
+
+-- move army
+
+
 moveArmy : Army -> Int -> Int -> Model -> Model
 moveArmy movingArmy oldRegionIndex newRegionIndex model =
     (checkOldRegionExists model oldRegionIndex)
@@ -310,10 +314,12 @@ joinOrBattle model oldRegionIndex newRegionIndex ( oldRegion, newRegion, movedAr
         -- start a battle
         Ok
             { model
-                | combatBoard = Just (majorBoard model.turn)
-                , currentState =
+                | currentState =
                     Combat
-                        { attackingArmy = movedArmy
+                        { board = skirmishBoard
+                        , turn = model.turn
+                        , state = Deploying
+                        , attackingArmy = movedArmy
                         , attackingRegionIndex = oldRegionIndex
                         , defendingArmy = newArmy
                         , defendingRegionIndex = newRegionIndex
@@ -324,6 +330,10 @@ joinOrBattle model oldRegionIndex newRegionIndex ( oldRegion, newRegion, movedAr
 joinArmies : Army -> Army -> Army
 joinArmies oldArmy newArmy =
     { oldArmy | units = (List.append oldArmy.units newArmy.units) }
+
+
+
+-- utility
 
 
 resetMoves : Unit -> Unit
@@ -356,10 +366,6 @@ setError model message =
 init : ( Model, Cmd Action )
 init =
     ( initialModel, Task.perform WindowResize Window.size )
-
-
-
--- utility
 
 
 noCmd : Model -> ( Model, Cmd Action )

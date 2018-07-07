@@ -57,10 +57,10 @@ type CurrentState
     | MovingArmy Int Army
     | SplittingArmy Int Army Army
     | AddingUnit AddingUnitState
-    | Combat CombatState
+    | Combat CombatMeta
 
 
-type CombatBoardState
+type CombatState
     = Deploying
 
 
@@ -68,8 +68,11 @@ type CombatBoardState
 -- misc
 
 
-type alias CombatState =
-    { attackingArmy : Army
+type alias CombatMeta =
+    { board : CombatBoard
+    , turn : Side
+    , state : CombatState
+    , attackingArmy : Army
     , attackingRegionIndex : Int
     , defendingArmy : Army
     , defendingRegionIndex : Int
@@ -93,10 +96,8 @@ type alias Position =
     }
 
 
-type alias Board side state =
+type alias CombatBoard =
     { imageSrc : String
-    , turn : side
-    , state : state
     , regions : Array.Array Region
     }
 
@@ -111,7 +112,6 @@ type alias Model =
     , turn : Side
     , currentState : CurrentState
     , regions : Array.Array Region
-    , combatBoard : Maybe (Board Side CombatBoardState)
     }
 
 
@@ -119,22 +119,18 @@ type alias Model =
 -- INIT
 
 
-skirmishBoard : Side -> Board Side CombatBoardState
-skirmishBoard turn =
+skirmishBoard : CombatBoard
+skirmishBoard =
     { imageSrc = "major_board_small.jpeg"
-    , turn = turn
-    , state = Deploying
     , regions =
         Array.fromList
             []
     }
 
 
-majorBoard : Side -> Board Side CombatBoardState
-majorBoard turn =
+majorBoard : CombatBoard
+majorBoard =
     { imageSrc = "major_board_small.jpeg"
-    , turn = turn
-    , state = Deploying
     , regions =
         Array.fromList
             []
@@ -286,7 +282,6 @@ initialModel =
             ]
     , turn = Confederate
     , currentState = Idle
-    , combatBoard = Nothing
     }
 
 
