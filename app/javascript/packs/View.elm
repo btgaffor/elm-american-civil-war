@@ -8,13 +8,14 @@ import Set
 import Maybe exposing (andThen)
 import Model exposing (..)
 import Update exposing (..)
+import MyMouse exposing (..)
 
 
 view : Model -> Html Action
 view model =
     div []
         (List.concat
-            [ [ errorModal model.error model.browser ]
+            [ [ errorModal model.error model.browser, renderMouse model.browser, renderMouseInfo model.browser ]
             , (case model.currentState of
                 Combat combatMeta ->
                     [ img [ src combatMeta.board.imageSrc ] []
