@@ -16,9 +16,9 @@ view model =
         (List.concat
             [ [ errorModal model.error model.browser ]
             , (case model.currentState of
-                Combat _ ->
-                    [ errorModal model.error model.browser
-                    , img [ src "major_board_small.jpeg" ] []
+                Combat combatMeta ->
+                    [ img [ src combatMeta.board.imageSrc ] []
+                    , div [] (Array.toList (Array.indexedMap renderCombatRegion combatMeta.board.regions))
                     ]
 
                 _ ->
@@ -104,6 +104,11 @@ renderMainRegion : Maybe Int -> Int -> Region -> Html Action
 renderMainRegion maybeSelectedRegionIndex index region =
     renderRegion index region <|
         mainRegionColor maybeSelectedRegionIndex index region
+
+
+renderCombatRegion : Int -> Region -> Html Action
+renderCombatRegion index region =
+    renderRegion index region "yellow"
 
 
 renderRegion : Int -> Region -> String -> Html Action
