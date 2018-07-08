@@ -23,7 +23,7 @@ view model =
 
                 _ ->
                     [ img [ src "map_v2.png" ] []
-                    , div [] (Array.toList (Array.indexedMap (renderRegion <| selectedRegion <| model) model.regions))
+                    , div [] (Array.toList (Array.indexedMap (renderMainRegion <| selectedRegion <| model) model.regions))
                     ]
               )
             , [ sidebar model ]
@@ -36,7 +36,7 @@ view model =
 --     Nothing ->
 --         [ errorModal model.error model.browser
 --         , img [ src "map_v2.png" ] []
---         , div [] (Array.toList (Array.indexedMap (renderRegion <| selectedRegion <| model) model.regions))
+--         , div [] (Array.toList (Array.indexedMap (renderMainRegion <| selectedRegion <| model) model.regions))
 --         , sidebar model
 --         ]
 --     Just combatBoard ->
@@ -85,32 +85,39 @@ errorModal maybeError browser =
                 ]
 
 
-renderRegion : Maybe Int -> Int -> Region -> Html Action
-renderRegion maybeSelectedRegionIndex index region =
-    let
-        backgroundColor =
-            case maybeSelectedRegionIndex of
-                Nothing ->
-                    "inherit"
+mainRegionColor : Maybe Int -> Int -> Region -> String
+mainRegionColor maybeSelectedRegionIndex index region =
+    case maybeSelectedRegionIndex of
+        Nothing ->
+            "inherit"
 
-                Just selectedRegionIndex ->
-                    if selectedRegionIndex == index then
-                        "green"
-                    else if (Set.member selectedRegionIndex region.connections) then
-                        "yellow"
-                    else
-                        "inherit"
-    in
-        div
-            [ class "region"
-            , style
-                [ ( "top", (toString region.position.top) ++ "px" )
-                , ( "left", (toString region.position.left) ++ "px" )
-                , ( "background-color", backgroundColor )
-                ]
-            , onClick <| ClickRegion index
+        Just selectedRegionIndex ->
+            if selectedRegionIndex == index then
+                "green"
+            else if (Set.member selectedRegionIndex region.connections) then
+                "yellow"
+            else
+                "inherit"
+
+
+renderMainRegion : Maybe Int -> Int -> Region -> Html Action
+renderMainRegion maybeSelectedRegionIndex index region =
+    renderRegion index region <|
+        mainRegionColor maybeSelectedRegionIndex index region
+
+
+renderRegion : Int -> Region -> String -> Html Action
+renderRegion index region backgroundColor =
+    div
+        [ class "region"
+        , style
+            [ ( "top", (toString region.position.top) ++ "px" )
+            , ( "left", (toString region.position.left) ++ "px" )
+            , ( "background-color", backgroundColor )
             ]
-            (army region.army)
+        , onClick <| ClickRegion index
+        ]
+        (army region.army)
 
 
 army : Maybe Army -> List (Html Action)
