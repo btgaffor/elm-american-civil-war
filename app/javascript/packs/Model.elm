@@ -96,14 +96,26 @@ type alias Position =
     }
 
 
-type alias CombatBoard =
+type CombatBoard
+    = MajorBoard MajorBoardMeta
+
+
+type alias MajorBoardMeta =
     { imageSrc : String
-    , regions : Array.Array Region
+    , enemyRetreat : Region
+    , enemyReserves : Region
+    , enemyLeft : Region
+    , enemyCenter : Region
+    , enemyRight : Region
+    , neutralLeft : Region
+    , neutralCenter : Region
+    , neutralRight : Region
+    , friendlyLeft : Region
+    , friendlyCenter : Region
+    , friendlyRight : Region
+    , friendlyReserves : Region
+    , friendlyRetreat : Region
     }
-
-
-
--- main
 
 
 type alias Model =
@@ -117,9 +129,9 @@ type alias Model =
 
 
 -- INIT
+-- skirmishBoard : CombatBoard
 
 
-skirmishBoard : CombatBoard
 skirmishBoard =
     { imageSrc = "major_board_small.jpeg"
     , regions =
@@ -128,12 +140,74 @@ skirmishBoard =
     }
 
 
-majorBoard : CombatBoard
+majorBoard : MajorBoardMeta
 majorBoard =
     { imageSrc = "major_board_small.jpeg"
-    , regions =
-        Array.fromList
-            []
+    , enemyRetreat =
+        { position = { left = 317, top = 66 }
+        , army = Nothing
+        , connections = Set.empty
+        }
+    , enemyReserves =
+        { position = { left = 317, top = 140 }
+        , army = Nothing
+        , connections = Set.empty
+        }
+    , enemyLeft =
+        { position = { left = 50, top = 216 }
+        , army = Nothing
+        , connections = Set.empty
+        }
+    , enemyCenter =
+        { position = { left = 317, top = 216 }
+        , army = Nothing
+        , connections = Set.empty
+        }
+    , enemyRight =
+        { position = { left = 583, top = 216 }
+        , army = Nothing
+        , connections = Set.empty
+        }
+    , neutralLeft =
+        { position = { left = 50, top = 292 }
+        , army = Nothing
+        , connections = Set.empty
+        }
+    , neutralCenter =
+        { position = { left = 317, top = 292 }
+        , army = Nothing
+        , connections = Set.empty
+        }
+    , neutralRight =
+        { position = { left = 583, top = 292 }
+        , army = Nothing
+        , connections = Set.empty
+        }
+    , friendlyLeft =
+        { position = { left = 50, top = 368 }
+        , army = Nothing
+        , connections = Set.empty
+        }
+    , friendlyCenter =
+        { position = { left = 317, top = 368 }
+        , army = Nothing
+        , connections = Set.empty
+        }
+    , friendlyRight =
+        { position = { left = 583, top = 368 }
+        , army = Nothing
+        , connections = Set.empty
+        }
+    , friendlyReserves =
+        { position = { left = 317, top = 443 }
+        , army = Nothing
+        , connections = Set.empty
+        }
+    , friendlyRetreat =
+        { position = { left = 317, top = 519 }
+        , army = Nothing
+        , connections = Set.empty
+        }
     }
 
 
@@ -281,7 +355,16 @@ initialModel =
               }
             ]
     , turn = Confederate
-    , currentState = Idle
+    , currentState =
+        Combat
+            { board = MajorBoard majorBoard
+            , turn = Confederate
+            , state = Deploying
+            , attackingArmy = { side = Confederate, units = [] }
+            , attackingRegionIndex = 1
+            , defendingArmy = { side = Union, units = [] }
+            , defendingRegionIndex = 2
+            }
     }
 
 

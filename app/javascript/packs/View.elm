@@ -18,9 +18,9 @@ view model =
             [ [ errorModal model.error model.browser, renderMouse model.browser, renderMouseInfo model.browser ]
             , (case model.currentState of
                 Combat combatMeta ->
-                    [ img [ src combatMeta.board.imageSrc ] []
-                    , div [] (Array.toList (Array.indexedMap renderCombatRegion combatMeta.board.regions))
-                    ]
+                    case combatMeta.board of
+                        MajorBoard majorBoard ->
+                            renderMajorBoard majorBoard
 
                 _ ->
                     [ img [ src "map_v2.png" ] []
@@ -107,11 +107,6 @@ renderMainRegion maybeSelectedRegionIndex index region =
         mainRegionColor maybeSelectedRegionIndex index region
 
 
-renderCombatRegion : Int -> Region -> Html Action
-renderCombatRegion index region =
-    renderRegion index region "yellow"
-
-
 renderRegion : Int -> Region -> String -> Html Action
 renderRegion index region backgroundColor =
     div
@@ -124,6 +119,40 @@ renderRegion index region backgroundColor =
         , onClick <| ClickRegion index
         ]
         (army region.army)
+
+
+renderCombatRegion : Region -> Html Action
+renderCombatRegion region =
+    div
+        [ class "combat-region"
+        , style
+            [ ( "top", (toString region.position.top) ++ "px" )
+            , ( "left", (toString region.position.left) ++ "px" )
+            , ( "background-color", "grey" )
+            ]
+
+        -- , onClick <| action
+        ]
+        (army region.army)
+
+
+renderMajorBoard : MajorBoardMeta -> List (Html Action)
+renderMajorBoard majorBoard =
+    [ img [ src majorBoard.imageSrc ] []
+    , renderCombatRegion majorBoard.enemyRetreat
+    , renderCombatRegion majorBoard.enemyReserves
+    , renderCombatRegion majorBoard.enemyLeft
+    , renderCombatRegion majorBoard.enemyCenter
+    , renderCombatRegion majorBoard.enemyRight
+    , renderCombatRegion majorBoard.neutralLeft
+    , renderCombatRegion majorBoard.neutralCenter
+    , renderCombatRegion majorBoard.neutralRight
+    , renderCombatRegion majorBoard.friendlyLeft
+    , renderCombatRegion majorBoard.friendlyCenter
+    , renderCombatRegion majorBoard.friendlyRight
+    , renderCombatRegion majorBoard.friendlyReserves
+    , renderCombatRegion majorBoard.friendlyRetreat
+    ]
 
 
 army : Maybe Army -> List (Html Action)

@@ -47,6 +47,13 @@
   border-radius: 20px;
 }
 
+.combat-region {
+  position: absolute;
+  width: 260px;
+  height: 70px;
+  opacity: 0.6;
+}
+
 .flag {
   position: relative;
   left: -5px;

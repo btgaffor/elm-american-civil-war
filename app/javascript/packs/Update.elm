@@ -308,7 +308,11 @@ joinOrBattle model oldRegionIndex newRegionIndex ( oldRegion, newRegion, movedAr
         Ok
             { model
                 | currentState = Idle
-                , regions = model.regions |> Array.set newRegionIndex { newRegion | army = Just (joinArmies movedArmy newArmy) }
+                , regions =
+                    model.regions
+                        |> Array.set
+                            newRegionIndex
+                            { newRegion | army = Just (joinArmies movedArmy newArmy) }
             }
     else
         -- start a battle
@@ -316,7 +320,7 @@ joinOrBattle model oldRegionIndex newRegionIndex ( oldRegion, newRegion, movedAr
             { model
                 | currentState =
                     Combat
-                        { board = skirmishBoard
+                        { board = MajorBoard majorBoard
                         , turn = model.turn
                         , state = Deploying
                         , attackingArmy = movedArmy
